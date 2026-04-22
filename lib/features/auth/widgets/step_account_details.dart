@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
 import 'package:project/core/services/auth_service.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:project/core/services/user_service.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +16,7 @@ class AccountDetails extends StatefulWidget {
 
 class _AccountDetailsState extends State<AccountDetails> {
   final AuthService auth = AuthService();
+  final UserService userService = UserService();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -22,6 +24,7 @@ class _AccountDetailsState extends State<AccountDetails> {
       TextEditingController();
 
   bool _emailExists = false;
+  bool _usernameExists = false;
 
   @override
   void initState() {
@@ -80,6 +83,17 @@ class _AccountDetailsState extends State<AccountDetails> {
           labelText: "Username",
           hintText: "Enter Username",
           autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+          onChanged: (value) async {
+            final result = await userService.isUsernameUnique(value);
+            if (result.isSuccess) {
+              final isUnique = result.data == true;
+              final exists = !isUnique;
+              if (_usernameExists != exists) {
+                setState(() => _usernameExists = exists);
+                widget.formKey.currentState?.validate();
+              }
+            }
+          },
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
               return 'Username is required';
@@ -93,6 +107,9 @@ class _AccountDetailsState extends State<AccountDetails> {
             if (!RegExp(r'^[A-Za-z0-9_.]+$').hasMatch(value)) {
               return 'Special characters other than (_) or (.) are not allowed';
             }
+            if (_usernameExists) {
+              return 'Username is already taken';
+            }
             return null;
           },
           onSaved: (value) => handleOnSave(value),
@@ -105,9 +122,10 @@ class _AccountDetailsState extends State<AccountDetails> {
           autovalidateMode: AutovalidateMode.onUserInteractionIfError,
           keyboardType: TextInputType.emailAddress,
           onChanged: (value) async {
-            final result = await auth.doesEmailExist(value);
+            final result = await userService.isEmailUnique(value);
             if (result.isSuccess) {
-              final exists = result.data == true;
+              final isUnique = result.data == true;
+              final exists = !isUnique;
               if (_emailExists != exists) {
                 setState(() => _emailExists = exists);
                 widget.formKey.currentState?.validate();

@@ -1,10 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/core/utils/result.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -31,7 +29,7 @@ class AuthService {
   }
 
   // Handle user registration
-  Future<Result<User>> signUp(String email, String password) async {
+  Future<Result<User?>> signUp(String email, String password) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -52,21 +50,7 @@ class AuthService {
     }
   }
 
-  Future<Result<bool>> doesEmailExist(String email) async {
-    if (email.isEmpty) return Result.success(false);
-
-    try {
-      final snapshot = await _db
-          .collection('users')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      return Result.success(snapshot.docs.isNotEmpty);
-    } on FirebaseException catch (e) {
-      return Result.error(e.message ?? "Database error occurred");
-    } catch (e) {
-      return Result.error(e.toString());
-    }
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 }
