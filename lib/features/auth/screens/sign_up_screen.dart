@@ -50,7 +50,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      print(context.read<AuthProvider>().myDietaryTags);
     }
   }
 
@@ -62,7 +61,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return false;
   }
 
-  void _handleSignUp() {}
+  void _handleSignUp() {
+    if (!_isValidForm()) return;
+
+    final authProvider = context.read<AuthProvider>();
+    authProvider.signUp();
+  }
 
   Widget _buildButton() {
     final bool isLastPage = _page == (pages - 1);
