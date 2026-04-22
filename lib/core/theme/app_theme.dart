@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/colors.dart';
+import 'extensions/smooth_page_indicator_theme.dart';
 
 class AppTheme {
   AppTheme._();
@@ -23,7 +24,7 @@ class AppTheme {
         surfaceContainerLow: AppColors.neutral50,
       ),
       textTheme: GoogleFonts.interTextTheme(),
-      scaffoldBackgroundColor: AppColors.neutral50,
+      scaffoldBackgroundColor: AppColors.neutral100,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.neutral50,
         foregroundColor: AppColors.neutral950,
@@ -57,6 +58,21 @@ class AppTheme {
           ),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary600,
+          foregroundColor: AppColors.neutral0,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          minimumSize: const Size.fromHeight(40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.primary600, width: 1.5),
@@ -76,25 +92,33 @@ class AppTheme {
         fillColor: AppColors.neutral0,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 16,
+          vertical: 12,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.neutral200),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.neutral200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.primary500, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.error500),
         ),
       ),
+      extensions: [
+        SmoothPageIndicatorThemeExtension(
+          activeDotColor: AppColors.primary600,
+          dotColor: AppColors.neutral300,
+          dotWidth: 8.0,
+          dotHeight: 8.0,
+        ),
+      ],
     );
   }
 
@@ -147,6 +171,21 @@ class AppTheme {
           ),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary600,
+          foregroundColor: AppColors.neutral0,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          minimumSize: const Size.fromHeight(40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.primary600, width: 1.5),
@@ -164,19 +203,31 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.neutral900,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.neutral800),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.neutral800),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.primary500, width: 2),
         ),
       ),
+      extensions: [
+        SmoothPageIndicatorThemeExtension(
+          activeDotColor: AppColors.primary500,
+          dotColor: AppColors.neutral700,
+          dotWidth: 8.0,
+          dotHeight: 8.0,
+        ),
+      ],
     );
   }
 }
