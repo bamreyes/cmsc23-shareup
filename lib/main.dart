@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'package:provider/provider.dart';
-import 'core/theme/app_theme.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:project/core/theme/app_theme.dart';
 import 'features/home/screens/landing_screen.dart';
 // import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -22,8 +22,12 @@ void main() async {
       },
     );
     debugPrint('Firebase initialization successful');
+
+    debugPrint('Loading environment variables...');
+    await dotenv.load(fileName: ".env");
+    debugPrint('Environment variables loaded');
   } catch (e) {
-    debugPrint('Firebase initialization failed or caught: $e');
+    debugPrint('Initialization failed: $e');
   }
 
   debugPrint('Calling runApp...');
