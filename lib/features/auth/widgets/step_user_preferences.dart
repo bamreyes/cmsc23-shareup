@@ -57,7 +57,7 @@ class _UserPreferencesState extends State<UserPreferences> {
   }
 
   Widget buildTags(AuthProvider authProvider) {
-    final myTags = authProvider.myDietaryTags;
+    final myTags = authProvider.dietaryTags;
     return FormField(
       validator: (_) => myTags.isEmpty ? 'Selection required' : null,
       autovalidateMode: AutovalidateMode.onUserInteractionIfError,

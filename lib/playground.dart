@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
+import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // ── IMPORT YOUR WIDGETS/SCREENS HERE ───────────────────────
 import 'core/widgets/buttons/primary_button.dart';
 import 'core/widgets/buttons/secondary_button.dart';
+import 'package:project/features/auth/screens/sign_up_screen.dart';
+import 'package:project/features/auth/providers/auth_provider.dart';
 
 // PLAYGROUND GUIDE:
 // 1. To test a FULL SCREEN:
@@ -14,18 +19,21 @@ import 'core/widgets/buttons/secondary_button.dart';
 // 3. Run this file specifically:
 //    `flutter run lib/playground.dart`
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await dotenv.load(fileName: ".env");
   // Uncomment to add your providers
-  // runApp(
-  //   MultiProvider(
-  //     providers: [
-  //       // Add your global providers here if needed for testing
-  //       // Example: ChangeNotifierProvider(create: (_) => AuthProvider()),
-  //     ],
-  //     child: const PlaygroundApp(),
-  //   ),
-  // );
-  runApp(PlaygroundApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        // Add your global providers here if needed for testing
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const PlaygroundApp(),
+    ),
+  );
+  // runApp(PlaygroundApp());
 }
 
 class PlaygroundApp extends StatelessWidget {
@@ -43,7 +51,7 @@ class PlaygroundApp extends StatelessWidget {
       // ── TEST TARGET ─────────────────────────────────────────
       // FOR SCREENS: Replace PlaygroundHome() with your screen
       // FOR WIDGETS: Use PlaygroundHome()
-      home: const PlaygroundHome(),
+      home: const SignUpScreen(),
       // ────────────────────────────────────────────────────────
     );
   }
@@ -70,7 +78,6 @@ class PlaygroundHome extends StatelessWidget {
             SecondaryButton(text: 'SecondaryButton', onPressed: () {}),
             PrimaryButton(text: 'Testing Primary Button', onPressed: () {}),
             const SizedBox(height: 16),
-
             // Add more widgets here...
             // ──────────────────────────────────────────────────
           ],
