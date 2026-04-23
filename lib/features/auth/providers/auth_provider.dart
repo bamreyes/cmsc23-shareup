@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/auth_service.dart';
@@ -68,9 +69,15 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sendImage() async {
-    Result<String> result = await _cloudinary.uploadFile(imageFile!);
-    imageUrl = result.data;
+  void clearProvider() {
+    username = null;
+    email = null;
+    password = null;
+    firstName = null;
+    lastName = null;
+    dietaryTags.clear();
+    imageFile = null;
+    notifyListeners();
   }
 
   Future<Result<dynamic>?> signUp() async {
@@ -81,7 +88,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     Result<String> cloudinaryResult = await _cloudinary.uploadFile(imageFile!);
-    if (signUpResult.isError) {
+    if (cloudinaryResult.isError) {
       return cloudinaryResult;
     }
 
@@ -102,5 +109,13 @@ class AuthProvider extends ChangeNotifier {
     );
     _user.addUser(user);
     return Result.success("Successfully signed up the user");
+  }
+
+  Future<Result<User?>> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final result = await _auth.signIn(email, password);
+    return result;
   }
 }
