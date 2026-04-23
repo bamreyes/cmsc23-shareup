@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
+import 'package:project/features/auth/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,7 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
-            autovalidateMode: AutovalidateMode.always,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -48,8 +50,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 PrimaryButton(
                   text: "Login",
                   onPressed: () {
-                    // TODO: Implement login logic
+                    final authProvider = context.read<AuthProvider>();
+                    authProvider.logIn(
+                      email: _emailController.text,
+                      password: _passwordController.text,
+                    );
                   },
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Don't have an account? "),
+                    TextButton(
+                      child: const Text("Sign up"),
+                      onPressed: () => context.go('/signup'),
+                    ),
+                  ],
                 ),
               ],
             ),
