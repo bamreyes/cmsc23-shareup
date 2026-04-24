@@ -67,6 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     final authProvider = context.read<AuthProvider>();
     authProvider.signUp();
+    context.go('/login');
   }
 
   Widget _buildButton() {
