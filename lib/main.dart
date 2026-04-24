@@ -34,7 +34,7 @@ void main() async {
   debugPrint('Calling runApp...');
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [ChangeNotifierProvider.value(value: authProvider)],
       child: const MyApp(),
     ),
   );
