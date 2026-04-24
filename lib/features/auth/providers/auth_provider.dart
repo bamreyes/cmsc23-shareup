@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/auth_service.dart';
@@ -12,28 +13,48 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _auth = AuthService();
   final UserService _user = UserService();
 
-  String? username;
-  String? email;
-  String? password;
-  String? firstName;
-  String? lastName;
-  List<String> dietaryTags = [];
-  File? imageFile;
-  String? imageUrl;
-  NotificationPreferences notificationPreferences = NotificationPreferences(
+  AuthProvider() {
+    _isLoggedIn = FirebaseAuth.instance.currentUser != null;
+    _auth.authStateChanges.listen((User? user) {
+      _isLoggedIn = user != null;
+      notifyListeners();
+    });
+  }
+
+  String? _username;
+  String? _email;
+  String? _password;
+  String? _firstName;
+  String? _lastName;
+  final List<String> _dietaryTags = [];
+  File? _imageFile;
+  String? _imageUrl;
+  NotificationPreferences _notificationPreferences = NotificationPreferences(
     newPost: true,
     requestReceived: true,
     requestAccepted: true,
     requestRejected: true,
     pickupReminder: true,
   );
+  bool _isLoggedIn = false;
 
-  List<String> get myDietaryTags => dietaryTags;
+  // Getters
+  String? get username => _username;
+  String? get email => _email;
+  String? get password => _password;
+  String? get firstName => _firstName;
+  String? get lastName => _lastName;
+  List<String> get dietaryTags => _dietaryTags;
+  File? get imageFile => _imageFile;
+  String? get imageUrl => _imageUrl;
+  NotificationPreferences get notificationPreferences =>
+      _notificationPreferences;
+  bool get isLoggedIn => _isLoggedIn;
 
   void toggleDietaryTag(String tag) {
-    final removed = dietaryTags.remove(tag);
+    final removed = _dietaryTags.remove(tag);
     if (!removed) {
-      dietaryTags.add(tag);
+      _dietaryTags.add(tag);
     }
     notifyListeners();
   }
@@ -43,9 +64,9 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
   }) {
-    this.email = email;
-    this.username = username;
-    this.password = password;
+    _email = email;
+    _username = username;
+    _password = password;
     notifyListeners();
   }
 
@@ -53,35 +74,41 @@ class AuthProvider extends ChangeNotifier {
     required String firstName,
     required String lastName,
   }) {
-    this.firstName = firstName;
-    this.lastName = lastName;
+    _firstName = firstName;
+    _lastName = lastName;
     notifyListeners();
   }
 
   void updateNotificationPreferences(NotificationPreferences preferences) {
-    notificationPreferences = preferences;
+    _notificationPreferences = preferences;
     notifyListeners();
   }
 
   void setImageFile(File image) {
-    imageFile = image;
+    _imageFile = image;
     notifyListeners();
   }
 
-  void sendImage() async {
-    Result<String> result = await _cloudinary.uploadFile(imageFile!);
-    imageUrl = result.data;
+  void clearProvider() {
+    _username = null;
+    _email = null;
+    _password = null;
+    _firstName = null;
+    _lastName = null;
+    _dietaryTags.clear();
+    _imageFile = null;
+    notifyListeners();
   }
 
   Future<Result<dynamic>?> signUp() async {
-    final signUpResult = await _auth.signUp(email!, password!);
+    final signUpResult = await _auth.signUp(_email!, _password!);
 
     if (signUpResult.isError) {
       return signUpResult;
     }
 
-    Result<String> cloudinaryResult = await _cloudinary.uploadFile(imageFile!);
-    if (signUpResult.isError) {
+    Result<String> cloudinaryResult = await _cloudinary.uploadFile(_imageFile!);
+    if (cloudinaryResult.isError) {
       return cloudinaryResult;
     }
 
@@ -90,17 +117,34 @@ class AuthProvider extends ChangeNotifier {
 
     UserModel user = UserModel(
       uid: uid,
-      firstName: firstName!,
-      lastName: lastName!,
-      email: email!,
-      username: username!,
+      firstName: _firstName!,
+      lastName: _lastName!,
+      email: _email!,
+      username: _username!,
       profileImage: imageUrl!,
-      dietaryTags: dietaryTags,
+      dietaryTags: _dietaryTags,
       discoveryRadius: 0,
       createdAt: DateTime.now(),
-      notificationPreferences: notificationPreferences,
+      notificationPreferences: _notificationPreferences,
     );
     _user.addUser(user);
     return Result.success("Successfully signed up the user");
   }
+
+  Future<Result<User?>> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final result = await _auth.signIn(email, password);
+    if (result.isError) {
+      return result;
+    }
+    return result;
+  }
+
+  Future<Result<String?>> logOut() async {
+    return await _auth.logOut();
+  }
 }
+
+final authProvider = AuthProvider();

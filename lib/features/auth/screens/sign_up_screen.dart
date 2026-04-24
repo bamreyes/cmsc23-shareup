@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project/features/auth/widgets/step_account_details.dart';
 import 'package:project/features/auth/widgets/step_user_preferences.dart';
 import 'package:project/features/auth/widgets/step_verification_photo.dart';
@@ -66,6 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     final authProvider = context.read<AuthProvider>();
     authProvider.signUp();
+    context.go('/login');
   }
 
   Widget _buildButton() {
@@ -125,7 +127,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-              Padding(padding: EdgeInsets.all(16.0), child: _buildButton()),
+              SizedBox(height: 24),
+              _buildButton(),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Already have an account? "),
+                  TextButton(
+                    child: const Text("Log in"),
+                    onPressed: () {
+                      final authProvider = context.read<AuthProvider>();
+                      authProvider.clearProvider();
+                      context.go('/login');
+                    },
+                  ),
+                ],
+              ),
             ],
           ),
         ),
