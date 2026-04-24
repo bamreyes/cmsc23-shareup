@@ -35,6 +35,8 @@ class AuthService {
         email: email,
         password: password,
       );
+      // log out after sign up
+      await _auth.signOut();
 
       return Result.success(credential.user);
     } on FirebaseAuthException catch (e) {
@@ -50,7 +52,14 @@ class AuthService {
     }
   }
 
-  Future<void> signOut() async {
-    await _auth.signOut();
+  Future<Result<String?>> logOut() async {
+    try {
+      await _auth.signOut();
+      return Result.success('User successfully loggeed out');
+    } on FirebaseAuthException catch (e) {
+      return Result.error(e.message);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
   }
 }

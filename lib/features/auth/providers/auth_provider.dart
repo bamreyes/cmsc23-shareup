@@ -13,6 +13,14 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _auth = AuthService();
   final UserService _user = UserService();
 
+  AuthProvider() {
+    _isLoggedIn = FirebaseAuth.instance.currentUser != null;
+    _auth.authStateChanges.listen((User? user) {
+      _isLoggedIn = user != null;
+      notifyListeners();
+    });
+  }
+
   String? _username;
   String? _email;
   String? _password;
@@ -28,7 +36,7 @@ class AuthProvider extends ChangeNotifier {
     requestRejected: true,
     pickupReminder: true,
   );
-  bool? _isLoggedIn;
+  bool _isLoggedIn = false;
 
   // Getters
   String? get username => _username;
@@ -41,7 +49,7 @@ class AuthProvider extends ChangeNotifier {
   String? get imageUrl => _imageUrl;
   NotificationPreferences get notificationPreferences =>
       _notificationPreferences;
-  bool? get isLoggedIn => _isLoggedIn;
+  bool get isLoggedIn => _isLoggedIn;
 
   void toggleDietaryTag(String tag) {
     final removed = _dietaryTags.remove(tag);
@@ -133,4 +141,10 @@ class AuthProvider extends ChangeNotifier {
     }
     return result;
   }
+
+  Future<Result<String?>> logOut() async {
+    return await _auth.logOut();
+  }
 }
+
+final authProvider = AuthProvider();
