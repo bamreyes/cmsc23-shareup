@@ -31,6 +31,12 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         surfaceTintColor: Colors.transparent,
+        shape: Border(
+          bottom: BorderSide(
+            color: AppColors.neutral200,
+            width: 1,
+          ),
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.neutral0,
@@ -171,6 +177,12 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         surfaceTintColor: Colors.transparent,
+        shape: Border(
+          bottom: BorderSide(
+            color: AppColors.neutral800,
+            width: 1,
+          ),
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.neutral900,
