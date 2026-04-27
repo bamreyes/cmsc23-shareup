@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project/features/auth/screens/sign_up_screen.dart';
 import 'package:project/features/auth/screens/login_screen.dart';
+import 'package:project/features/feed/screens/feed_screen.dart';
 import 'package:project/features/home/screens/not_found_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/core/widgets/navigation/main_navigation_shell.dart';
@@ -47,7 +48,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/feed',
-              builder: (context, state) => const NotFoundScreen(),
+              builder: (context, state) => const FeedScreen(),
             ),
           ],
         ),
