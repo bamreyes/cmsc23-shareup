@@ -1,11 +1,11 @@
-# project
+# ShareUP
 
-A new Flutter project.
+A Flutter application for sharing and exchanging items within a community.
 
-## Development Guide
+## Developer Guide
 
-For instructions on **Isolated Development** (Playground) and how to build features efficiently, please refer to:
-**[DEVELOPMENT.md](file:///c:/Users/Bam/Desktop/Computer_Science/01_Academics/CMSC23/project/DEVELOPMENT.md)**
+For the full development guide covering **file structure, conventions, playground usage, git workflow, and PR templates**, please refer to:
+**[DEVELOPMENT.md](DEVELOPMENT.md)**
 
 ---
 
@@ -36,11 +36,27 @@ To generate the necessary `lib/firebase_options.dart` file for your local enviro
 
 ---
 
+## Cloudinary Setup
+
+We use **[Cloudinary](https://cloudinary.com/)** for image uploads (profile photos, feed post images, etc.). The credentials are loaded from a `.env` file which is not committed to version control.
+
+### Setup
+1. Create a `.env` file in the project root (if it doesn't exist).
+2. Add the following Cloudinary credentials (ask the team for the values):
+   ```
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_UPLOAD_PRESET=your_upload_preset
+   ```
+
+> For usage details, see the [Developer Guide](DEVELOPMENT.md#image-uploads-with-cloudinary).
+
+---
+
 ## Getting Started
 
 1. Ensure you have the Flutter SDK installed.
 2. Clone the repository.
 3. Run `flutter pub get`.
 4. Follow the **Firebase Setup** above.
-5. Run the app: `flutter run`.
-
+5. Create the `.env` file with Cloudinary credentials (see **Cloudinary Setup** above).
+6. Run the app: `flutter run`.
