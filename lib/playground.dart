@@ -49,12 +49,12 @@ class PlaygroundApp extends StatelessWidget {
       name: 'Fresh Tomatoes',
       description: 'Freshly picked tomatoes from my backyard garden. Perfect for salads or cooking!',
       image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&q=80', 
-      expirationDate: DateTime.now().add(const Duration(days: 4)), // Triggers the Warning/Orange color
+      expirationDate: DateTime.now().add(const Duration(days: 4)), 
       dietaryTags: ['Vegan', 'Fresh Fruits', 'Raw Ingredient'],
       latitude: 14.1648,
       longitude: 121.2413,
       locationName: 'UPLB Gate',
-      status: PostStatus.available, // Swap to PostStatus.reserved to test the yellow banner!
+      status: PostStatus.available, 
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       updatedAt: DateTime.now(),
     );
