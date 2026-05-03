@@ -11,6 +11,9 @@ import 'core/widgets/buttons/secondary_button.dart';
 import 'package:project/features/auth/screens/sign_up_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 
+import 'package:project/core/models/post_model.dart'; 
+import 'package:project/features/feed/screens/feed_item_screen.dart';
+
 // PLAYGROUND GUIDE:
 // 1. To test a FULL SCREEN:
 //    Go to line 45 and swap 'PlaygroundHome()' with your screen (e.g. 'LandingScreen()').
@@ -41,6 +44,20 @@ class PlaygroundApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mockPost = PostModel(
+      userId: 'user_12345',
+      name: 'Fresh Tomatoes',
+      description: 'Freshly picked tomatoes from my backyard garden. Perfect for salads or cooking!',
+      image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&q=80', 
+      expirationDate: DateTime.now().add(const Duration(days: 4)), // Triggers the Warning/Orange color
+      dietaryTags: ['Vegan', 'Fresh Fruits', 'Raw Ingredient'],
+      latitude: 14.1648,
+      longitude: 121.2413,
+      locationName: 'UPLB Gate',
+      status: PostStatus.available, // Swap to PostStatus.reserved to test the yellow banner!
+      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      updatedAt: DateTime.now(),
+    );
     return MaterialApp(
       title: 'ShareUP Playground',
       debugShowCheckedModeBanner: false,
@@ -51,7 +68,7 @@ class PlaygroundApp extends StatelessWidget {
       // ── TEST TARGET ─────────────────────────────────────────
       // FOR SCREENS: Replace PlaygroundHome() with your screen
       // FOR WIDGETS: Use PlaygroundHome()
-      home: const SignUpScreen(),
+      home: FeedItemScreen(post: mockPost),
       // ────────────────────────────────────────────────────────
     );
   }
