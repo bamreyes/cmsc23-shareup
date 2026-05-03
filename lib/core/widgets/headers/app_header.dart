@@ -50,21 +50,21 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Hello,',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.neutral500,
-              fontWeight: FontWeight.w500,
+          Builder(
+            builder: (context) => Text(
+              'Hello,',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.neutral400
+                    : AppColors.neutral500,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           Text(
             name,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.neutral900,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -87,11 +87,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.neutral900,
-        ),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
       actions: [
         _CircleIconButton(
@@ -109,11 +105,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: _CircleIconButton(icon: Icons.arrow_back, onPressed: onBack),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.neutral900,
-        ),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -124,11 +116,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: _CircleIconButton(icon: Icons.close, onPressed: onClose),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.neutral900,
-        ),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -144,11 +132,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: _CircleIconButton(icon: Icons.arrow_back, onPressed: onBack),
       title: Text(
         title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.neutral900,
-        ),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
       actions: [
         TextButton(
@@ -201,18 +185,23 @@ class _CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.neutral100,
+          color: isDarkMode ? AppColors.neutral900 : AppColors.neutral100,
           borderRadius: BorderRadius.circular(16),
         ),
         child: IconButton(
           padding: EdgeInsets.zero,
-          icon: Icon(icon, color: AppColors.neutral900, size: 24),
+          icon: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface,
+            size: 24,
+          ),
           onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),
       ),
