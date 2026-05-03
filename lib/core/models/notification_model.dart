@@ -5,7 +5,7 @@ enum NotificationType {
   requestReceived,
   requestAccepted,
   requestRejected,
-  pickupReminder
+  pickupReminder,
 }
 
 class NotificationModel {
@@ -47,6 +47,6 @@ class NotificationModel {
       'requestId': requestId,
       'isRead': isRead,
       'createdAt': Timestamp.fromDate(createdAt),
-    }
+    };
   }
 }
