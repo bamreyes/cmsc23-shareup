@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:project/core/theme/app_theme.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
 import 'firebase_options.dart';
 import 'package:project/core/router/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
+import 'package:project/features/feed/providers/feed_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +36,11 @@ void main() async {
   debugPrint('Calling runApp...');
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider.value(value: authProvider)],
+      providers: [
+        ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider.value(value: feedProvider),
+        ChangeNotifierProvider.value(value: profileProvider),
+      ],
       child: const MyApp(),
     ),
   );

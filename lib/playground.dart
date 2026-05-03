@@ -11,7 +11,7 @@ import 'core/widgets/buttons/secondary_button.dart';
 import 'package:project/features/auth/screens/sign_up_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 
-import 'package:project/core/models/post_model.dart'; 
+import 'package:project/core/models/post_model.dart';
 import 'package:project/features/feed/screens/feed_item_screen.dart';
 
 // PLAYGROUND GUIDE:
@@ -47,14 +47,16 @@ class PlaygroundApp extends StatelessWidget {
     final mockPost = PostModel(
       userId: 'user_12345',
       name: 'Fresh Tomatoes',
-      description: 'Freshly picked tomatoes from my backyard garden. Perfect for salads or cooking!',
-      image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&q=80', 
-      expirationDate: DateTime.now().add(const Duration(days: 4)), 
+      description:
+          'Freshly picked tomatoes from my backyard garden. Perfect for salads or cooking!',
+      image:
+          'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&q=80',
+      expirationDate: DateTime.now().add(const Duration(days: 4)),
       dietaryTags: ['Vegan', 'Fresh Fruits', 'Raw Ingredient'],
       latitude: 14.1648,
       longitude: 121.2413,
       locationName: 'UPLB Gate',
-      status: PostStatus.available, 
+      status: PostStatus.available,
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
       updatedAt: DateTime.now(),
     );

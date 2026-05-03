@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
+import 'package:provider/provider.dart';
 
-class ScaffoldLayout extends StatelessWidget {
+class ScaffoldLayout extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const ScaffoldLayout({required this.navigationShell, Key? key})
-    : super(key: key ?? const ValueKey<String>('ScaffoldLayout'));
+      : super(key: key ?? const ValueKey<String>('ScaffoldLayout'));
+
+  @override
+  State<ScaffoldLayout> createState() => _ScaffoldLayoutState();
+}
+
+class _ScaffoldLayoutState extends State<ScaffoldLayout> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileProvider>().updateLocation();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.0),
+        padding: const EdgeInsets.symmetric(horizontal: 4.0),
         child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: navigationShell.goBranch,
+          selectedIndex: widget.navigationShell.currentIndex,
+          onDestinationSelected: widget.navigationShell.goBranch,
           destinations: destinations
               .map(
                 (destination) => NavigationDestination(

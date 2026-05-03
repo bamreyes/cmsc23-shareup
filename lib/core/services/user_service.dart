@@ -53,4 +53,19 @@ class UserService {
       return Result.error(e.toString());
     }
   }
+  Future<Result<void>> updateUserLocation(
+    String uid,
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'latitude': latitude,
+        'longitude': longitude,
+      });
+      return Result.success(null);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
 }

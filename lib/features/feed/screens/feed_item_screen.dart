@@ -1,58 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/constants/colors.dart'; 
-import '../../../core/models/post_model.dart'; 
+import 'package:project/core/models/user_model.dart';
+import '../../../core/widgets/common/tag.dart';
+import '../../../core/constants/colors.dart';
+import '../../../core/models/post_model.dart';
+import 'package:project/core/utils/time_ago.dart';
+import 'package:project/core/widgets/headers/app_header.dart';
 
 class FeedItemScreen extends StatelessWidget {
   final PostModel post;
+  final UserModel? user;
+  final String? distance;
 
-  const FeedItemScreen({super.key, required this.post});
+  const FeedItemScreen({
+    super.key,
+    required this.post,
+    this.user,
+    this.distance,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
-    final expirationColor = AppColors.expiryColor(post.expirationDate); 
-        final bool isReserved = post.status == PostStatus.reserved;
 
+    final expirationColor = AppColors.expiryColor(post.expirationDate);
+    final bool isReserved = post.status == PostStatus.reserved;
+    AppHeader.close(title: 'Item Details', onClose: () => context.pop());
     return Scaffold(
       backgroundColor: AppColors.scaffoldLight,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.black),
-          onPressed: () => context.pop(), 
-        ),
-        title: Text(
-          'Item Details',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
+      appBar: AppHeader.close(
+        title: 'Item Details',
+        onClose: () => context.pop(),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Using placeholders for the UI build for now
             Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 16,
-                  backgroundImage: NetworkImage('https://via.placeholder.com/150'), 
+                  backgroundImage: user?.profileImage != null
+                      ? NetworkImage(user!.profileImage)
+                      : const NetworkImage('https://via.placeholder.com/150'),
                 ),
                 const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'User ${post.userId.substring(0, 5)}...', // Placeholder Name
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                      user?.username ??
+                          'User ${post.userId.substring(0, 5)}...',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    Text(
-                      '5 hours ago • 1.2 km away', // Placeholder distance 
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey600),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: AppColors.grey400,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          timeAgo(post.createdAt),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.grey600,
+                          ),
+                        ),
+                        if (distance != null) ...[
+                          const SizedBox(width: 16),
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: AppColors.grey400,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            distance!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.grey600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -62,7 +95,7 @@ class FeedItemScreen extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.network(
-                post.image, 
+                post.image,
                 width: double.infinity,
                 height: 300,
                 fit: BoxFit.cover,
@@ -70,41 +103,47 @@ class FeedItemScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 300,
                   color: AppColors.grey200,
-                  child: const Icon(Icons.broken_image, size: 50, color: AppColors.grey600),
+                  child: const Icon(
+                    Icons.broken_image,
+                    size: 50,
+                    color: AppColors.grey600,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               post.name,
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
 
             Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: post.dietaryTags.map((tag) => _buildTag(tag, theme)).toList(),
+              children: post.dietaryTags.map((tag) => Tag(label: tag)).toList(),
             ),
             const SizedBox(height: 24),
             _buildDetailSection(theme, 'Product Description', post.description),
             _buildDetailSection(
-              theme, 
-              'Best Before', 
-              '${post.expirationDate.month}/${post.expirationDate.day}/${post.expirationDate.year}', 
-              titleColor: expirationColor, 
-            ), 
-            _buildDetailSection(
-              theme, 
-              'Pickup Location', 
-              '${post.locationName}\n1.2 km away from you',
+              theme,
+              'Best Before',
+              '${post.expirationDate.month}/${post.expirationDate.day}/${post.expirationDate.year}',
+              titleColor: expirationColor,
             ),
             _buildDetailSection(
-              theme, 
-              'Posting date', 
-              '${post.createdAt.month}/${post.createdAt.day}/${post.createdAt.year}' 
+              theme,
+              'Pickup Location',
+              '${post.locationName}\n${distance} from you',
             ),
-            
+            _buildDetailSection(
+              theme,
+              'Posting date',
+              '${post.createdAt.month}/${post.createdAt.day}/${post.createdAt.year}',
+            ),
+
             const SizedBox(height: 32),
           ],
         ),
@@ -118,21 +157,12 @@ class FeedItemScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTag(String label, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.borderLight),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(color: AppColors.black),
-      ),
-    );
-  }
-
-  Widget _buildDetailSection(ThemeData theme, String title, String content, {Color? titleColor}) {
+  Widget _buildDetailSection(
+    ThemeData theme,
+    String title,
+    String content, {
+    Color? titleColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -140,7 +170,9 @@ class FeedItemScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: theme.textTheme.bodySmall?.copyWith(color: titleColor ?? AppColors.grey600),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: titleColor ?? AppColors.grey600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -152,7 +184,11 @@ class FeedItemScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomAction(BuildContext context, ThemeData theme, {required bool isReserved}) {
+  Widget _buildBottomAction(
+    BuildContext context,
+    ThemeData theme, {
+    required bool isReserved,
+  }) {
     if (isReserved) {
       return Container(
         width: double.infinity,
@@ -164,7 +200,11 @@ class FeedItemScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.info_outline, color: AppColors.statusReserved, size: 20),
+            const Icon(
+              Icons.info_outline,
+              color: AppColors.statusReserved,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(
               'Item already reserved',
@@ -179,14 +219,14 @@ class FeedItemScreen extends StatelessWidget {
     } else {
       return ElevatedButton(
         onPressed: () {
-          context.push('/request', extra: post); 
+          context.push('/request', extra: post);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary500, 
+          backgroundColor: AppColors.primary500,
           foregroundColor: AppColors.white,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25), 
+            borderRadius: BorderRadius.circular(25),
           ),
           elevation: 0,
         ),
