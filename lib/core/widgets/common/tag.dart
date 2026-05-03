@@ -1,0 +1,40 @@
+import 'package:flutter/material.dart';
+import 'package:project/core/constants/colors.dart';
+
+class Tag extends StatelessWidget {
+  final String label;
+  final Color? color;
+  final Color? textColor;
+  final bool isFilled;
+
+  const Tag({
+    super.key,
+    required this.label,
+    this.color,
+    this.textColor,
+    this.isFilled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final effectiveColor = color ?? AppColors.borderLight;
+    final effectiveTextColor = textColor ?? AppColors.black;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isFilled ? effectiveColor : Colors.transparent,
+        border: isFilled ? null : Border.all(color: effectiveColor),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: effectiveTextColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
