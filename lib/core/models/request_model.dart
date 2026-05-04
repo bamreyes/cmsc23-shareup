@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum RequestStatus { pending, accepted, rejected, cancelled, completed }
 
 class RequestModel {
@@ -16,4 +18,15 @@ class RequestModel {
     required this.status,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'postId': postId,
+      'requesterId': requesterId,
+      'pickupDatetime': Timestamp.fromDate(pickupDatetime),
+      'message': message,
+      'status': status.name,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
 }
