@@ -122,7 +122,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
             const SizedBox(height: 24),
             _buildScheduleCard(theme),
             const SizedBox(height: 20),
-            // _buildMessageCard(theme),
+            _buildMessageCard(theme),
           ],
         ),
       ),
@@ -180,11 +180,8 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
         const SizedBox(height: 16),
         Text(widget.post.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 28)),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: widget.post.dietaryTags.map((tag) => Tag(label: tag)).toList(),
-        ),
-      ],
+        Wrap(spacing: 8, children: widget.post.dietaryTags.map((tag) => Tag(label: tag)).toList()),
+      ]
     );
   }
 
@@ -230,6 +227,30 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
           )
         )
       ]
+    );
+  }
+
+  Widget _buildMessageCard(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.grey200), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Message (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _messageController,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: 'Hello! I would like to request for this item because...',
+              filled: true,
+              fillColor: AppColors.grey100,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            )
+          )
+        ]
+      )
     );
   }
 
