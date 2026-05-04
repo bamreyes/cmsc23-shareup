@@ -32,10 +32,7 @@ class AppTheme {
         centerTitle: true,
         surfaceTintColor: Colors.transparent,
         shape: Border(
-          bottom: BorderSide(
-            color: AppColors.neutral200,
-            width: 1,
-          ),
+          bottom: BorderSide(color: AppColors.neutral200, width: 1),
         ),
       ),
       cardTheme: CardThemeData(
@@ -151,6 +148,18 @@ class AppTheme {
           dotHeight: 8.0,
         ),
       ],
+      sliderTheme: SliderThemeData(
+        activeTrackColor: AppColors.primary500,
+        inactiveTrackColor: AppColors.neutral200,
+        thumbColor: AppColors.primary500,
+        overlayColor: AppColors.primary500.withValues(alpha: 0.12),
+        tickMarkShape: SliderTickMarkShape.noTickMark,
+        showValueIndicator: ShowValueIndicator.never,
+        valueIndicatorShape: const RectangularSliderValueIndicatorShape(),
+        valueIndicatorColor: AppColors.primary700,
+        valueIndicatorTextStyle: const TextStyle(color: Colors.white),
+        trackHeight: 4.0,
+      ),
     );
   }
 
@@ -178,10 +187,7 @@ class AppTheme {
         centerTitle: true,
         surfaceTintColor: Colors.transparent,
         shape: Border(
-          bottom: BorderSide(
-            color: AppColors.neutral800,
-            width: 1,
-          ),
+          bottom: BorderSide(color: AppColors.neutral800, width: 1),
         ),
       ),
       cardTheme: CardThemeData(
@@ -292,6 +298,18 @@ class AppTheme {
           dotHeight: 8.0,
         ),
       ],
+      sliderTheme: SliderThemeData(
+        activeTrackColor: AppColors.primary500,
+        inactiveTrackColor: AppColors.neutral800,
+        thumbColor: AppColors.primary500,
+        overlayColor: AppColors.primary500.withValues(alpha: 0.12),
+        tickMarkShape: SliderTickMarkShape.noTickMark,
+        showValueIndicator: ShowValueIndicator.never,
+        valueIndicatorShape: const RectangularSliderValueIndicatorShape(),
+        valueIndicatorColor: AppColors.primary700,
+        valueIndicatorTextStyle: const TextStyle(color: Colors.white),
+        trackHeight: 4.0,
+      ),
     );
   }
 }

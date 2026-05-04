@@ -6,13 +6,11 @@ import 'package:project/features/feed/widgets/expiration_tag.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/database_service.dart';
-import 'package:project/core/services/location_service.dart';
-import 'package:project/features/profile/providers/profile_provider.dart';
-import 'package:provider/provider.dart';
 
 class FeedPost extends StatefulWidget {
   final PostModel post;
-  const FeedPost({super.key, required this.post});
+  final double? distance;
+  const FeedPost({super.key, required this.post, this.distance});
 
   @override
   State<FeedPost> createState() => _FeedPostState();
@@ -20,7 +18,6 @@ class FeedPost extends StatefulWidget {
 
 class _FeedPostState extends State<FeedPost> {
   final _database = DatabaseService();
-  final _location = LocationService();
   UserModel? _postUser;
 
   @override
@@ -39,29 +36,19 @@ class _FeedPostState extends State<FeedPost> {
       return const SizedBox.shrink();
     }
 
-    final profile = context.watch<ProfileProvider>();
-    final myLat = profile.latitude;
-    final myLng = profile.longitude;
-
-    String? distanceText;
-    if (myLat != null && myLng != null) {
-      final result = _location.getDistance(
-        startLatitude: myLat,
-        startLongitude: myLng,
-        endLatitude: widget.post.latitude,
-        endLongitude: widget.post.longitude,
-      );
-      if (result.isSuccess) {
-        distanceText = '${result.data!.toStringAsFixed(1)} km away';
-      }
-    }
+    final distanceText = widget.distance != null
+        ? '${widget.distance!.toStringAsFixed(1)} km away'
+        : null;
 
     return InkWell(
-      onTap: () => context.push('/item', extra: {
-        'post': widget.post,
-        'user': _postUser,
-        'distance': distanceText,
-      }),
+      onTap: () => context.push(
+        '/item',
+        extra: {
+          'post': widget.post,
+          'user': _postUser,
+          'distance': distanceText,
+        },
+      ),
       child: Column(
         children: [
           _buildPostHeader(distanceText),

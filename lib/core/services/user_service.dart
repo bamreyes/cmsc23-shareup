@@ -53,6 +53,7 @@ class UserService {
       return Result.error(e.toString());
     }
   }
+
   Future<Result<void>> updateUserLocation(
     String uid,
     double latitude,
@@ -63,6 +64,18 @@ class UserService {
         'latitude': latitude,
         'longitude': longitude,
       });
+      return Result.success(null);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<void>> updateUser(
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await _db.collection('users').doc(uid).update(data);
       return Result.success(null);
     } catch (e) {
       return Result.error(e.toString());
