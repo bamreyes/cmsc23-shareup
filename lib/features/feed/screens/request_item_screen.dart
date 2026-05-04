@@ -116,12 +116,12 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
           children: [
             _buildUploaderHeader(theme),
             const SizedBox(height: 20),
-            // _buildImageSection(theme),
-            // const SizedBox(height: 24),
-            // const Divider(color: AppColors.grey200, thickness: 1),
-            // const SizedBox(height: 24),
-            // _buildScheduleCard(theme),
-            // const SizedBox(height: 20),
+            _buildImageSection(theme),
+            const SizedBox(height: 24),
+            const Divider(color: AppColors.grey200, thickness: 1),
+            const SizedBox(height: 24),
+            _buildScheduleCard(theme),
+            const SizedBox(height: 20),
             // _buildMessageCard(theme),
           ],
         ),
@@ -169,6 +169,70 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     );
   }
 
+  Widget _buildImageSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadiusGeometry.circular(20),
+          child: Image.network(widget.post.image, height: 380, width: double.infinity, fit: BoxFit.cover),
+        ),
+        const SizedBox(height: 16),
+        Text(widget.post.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 28)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: widget.post.dietaryTags.map((tag) => Tag(label: tag)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScheduleCard(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.grey200), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Pickup Schedule", style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.grey400)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _buildInlinePicker("Date", selectedDate == null ? "Select Date" : "${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}", Icons.calendar_today_outlined, _selectDate)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildInlinePicker("Time", selectedTime == null ? "Select Time" : selectedTime!.format(context), Icons.access_time, _selectTime)),
+            ]
+          )
+        ]
+      )
+    );
+  }
+
+  Widget _buildInlinePicker(String label, String value, IconData icon, VoidCallback onTap) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                Icon(icon, size: 18, color: AppColors.grey600),
+              ]
+            )
+          )
+        )
+      ]
+    );
+  }
+
   Widget _buildReservedBanner(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -187,5 +251,19 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       ),
       child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Request Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
     );
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 30)));
+    if (picked != null) {
+      setState(() => selectedDate = picked);
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    if (picked != null) {
+      setState(() => selectedTime = picked);
+    }
   }
 }
