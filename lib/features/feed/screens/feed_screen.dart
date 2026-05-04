@@ -4,6 +4,7 @@ import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/features/feed/providers/feed_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/feed/widgets/feed_post.dart';
+import 'package:project/core/services/location_service.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -13,6 +14,8 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
+  final _locationService = LocationService();
+
   @override
   void initState() {
     super.initState();
@@ -26,24 +29,61 @@ class _FeedScreenState extends State<FeedScreen> {
     final feedProvider = context.watch<FeedProvider>();
     final profileProvider = context.watch<ProfileProvider>();
     final currentUid = profileProvider.userId;
-    
-    // Filter out user's own posts
-    final posts = feedProvider.posts.where((post) => post.userId != currentUid).toList();
+    final user = profileProvider.currentUser;
 
-    if (feedProvider.isLoading && posts.isEmpty) {
+    final radius = user?.discoveryRadius ?? 50.0;
+    final userLat = user?.latitude ?? 0.0;
+    final userLng = user?.longitude ?? 0.0;
+    final userTags = user?.dietaryTags ?? [];
+
+    final postsData =
+        feedProvider.posts
+            // map post returning the post and distance
+            .map((post) {
+              final distance =
+                  _locationService
+                      .getDistance(
+                        startLatitude: userLat,
+                        startLongitude: userLng,
+                        endLatitude: post.latitude,
+                        endLongitude: post.longitude,
+                      )
+                      .data ??
+                  0.0;
+              return (post: post, distance: distance);
+            })
+            .where((item) {
+              if (item.post.userId == currentUid) {
+                return false; // filter out your posts
+              }
+              if (item.distance > radius) {
+                return false; // filter posts outside your distance
+              }
+              if (userTags
+                      .isNotEmpty && // filter posts not containing your tags
+                  !item.post.dietaryTags.any(userTags.contains)) {
+                return false;
+              }
+              return true;
+            })
+            .toList()
+          ..sort(
+            (a, b) => a.distance.compareTo(b.distance),
+          ); // sort based on distance
+
+    if (feedProvider.isLoading && postsData.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
-    debugPrint('Posts count: ${posts.length}');
 
     return Scaffold(
       appBar: AppHeader.title(title: "Feed"),
       body: RefreshIndicator(
         onRefresh: () => feedProvider.fetchAllPosts(),
         child: ListView.builder(
-          itemCount: posts.length,
+          itemCount: postsData.length,
           itemBuilder: (context, index) {
-            return FeedPost(post: posts[index]);
+            final item = postsData[index];
+            return FeedPost(post: item.post, distance: item.distance);
           },
         ),
       ),
