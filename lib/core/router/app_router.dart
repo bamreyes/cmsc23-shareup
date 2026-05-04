@@ -5,6 +5,7 @@ import 'package:project/features/auth/screens/sign_up_screen.dart';
 import 'package:project/features/auth/screens/login_screen.dart';
 import 'package:project/features/feed/screens/feed_screen.dart';
 import 'package:project/features/feed/screens/feed_item_screen.dart';
+import 'package:project/features/feed/screens/request_item_screen.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/features/home/screens/home_screen.dart';
 import 'package:project/features/exchanges/screens/exchanges_screen.dart';
@@ -44,6 +45,20 @@ final appRouter = GoRouter(
         final user = extra['user'] as UserModel?;
         final distance = extra['distance'] as String?;
         return FeedItemScreen(post: post, user: user, distance: distance);
+      },
+    ),
+    GoRoute(
+      path: '/request',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        final post = extra['post'] as PostModel;
+        final user = extra['user'] as UserModel?;
+        final distance = extra['distance'] as String?;
+        return RequestItemScreen(
+          post: post,
+          initialUser: user,
+          initialDistance: distance,
+        );
       },
     ),
     StatefulShellRoute.indexedStack(

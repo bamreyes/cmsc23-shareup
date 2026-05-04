@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:project/core/models/user_model.dart';
 import '../models/post_model.dart';
+import '../models/request_model.dart';
 import 'package:project/core/utils/result.dart';
 
 class DatabaseService {
@@ -67,6 +68,39 @@ class DatabaseService {
         );
       }
       return Result.error("User not found");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  //for creating request
+  Future<Result<bool>> createRequest(RequestModel request) async {
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        final postRef = _firestore.collection('posts').doc(request.postId);
+        final postDoc = await transaction.get(postRef);
+
+        if (!postDoc.exists) {
+          return Result.error("Post not found");
+        }
+
+        final currentStatus = postDoc.data()?['status'];
+
+        //checker for availability of item
+        if (currentStatus != PostStatus.available.name) {
+          return Result.error("Item already reserved!");
+        }
+
+        final requestRef = _firestore.collection('requests').doc();
+        transaction.set(requestRef, request.toJson());
+
+        transaction.update(postRef, {
+          'status': PostStatus.reserved.name,
+          'receiverId': request.requesterId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return Result.success(true);
+      });
     } catch (e) {
       return Result.error(e.toString());
     }

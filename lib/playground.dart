@@ -4,6 +4,8 @@ import 'core/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:project/features/feed/screens/request_item_screen.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
 
 // ── IMPORT YOUR WIDGETS/SCREENS HERE ───────────────────────
 import 'core/widgets/buttons/primary_button.dart';
@@ -32,6 +34,7 @@ void main() async {
       providers: [
         // Add your global providers here if needed for testing
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: const PlaygroundApp(),
     ),
@@ -70,7 +73,8 @@ class PlaygroundApp extends StatelessWidget {
       // ── TEST TARGET ─────────────────────────────────────────
       // FOR SCREENS: Replace PlaygroundHome() with your screen
       // FOR WIDGETS: Use PlaygroundHome()
-      home: FeedItemScreen(post: mockPost),
+      // home: FeedItemScreen(post: mockPost),
+      home: RequestItemScreen(post: mockPost),
       // ────────────────────────────────────────────────────────
     );
   }
