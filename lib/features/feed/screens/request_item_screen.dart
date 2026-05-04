@@ -37,6 +37,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   UserModel? _uploader;
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  String? _timeError;
   final TextEditingController _messageController = TextEditingController();
   final _databaseService = DatabaseService();
   final _locationService = LocationService();
@@ -99,8 +100,34 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     }
   }
 
-  void _handleSubmit() async {
+  void _validatePickupTime() {
     if (selectedDate == null || selectedTime == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final pickup = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
+    final oneHourFromNow = now.add(const Duration(hours: 1));
+
+    setState(() {
+      if (pickup.isBefore(now)) {
+        _timeError = "Selected time has already passed.";
+      } else if (pickup.isBefore(oneHourFromNow)) {
+        _timeError = "Selected time must at least an hour from now.";
+      } else {
+        _timeError = null;
+      }
+    });
+  }
+
+  void _handleSubmit() async {
+    if (selectedDate == null || selectedTime == null || _timeError != null) {
       return;
     }
 
@@ -131,7 +158,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     } else {
       setState(() {
         _isLoading = false;
-        if (result.error == "Item already reserved") {
+        if (result.error == "Item already reserved!") {
           _isReserved = true;
         }
       });
@@ -259,6 +286,19 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
               ),
             ],
           ),
+          if (_timeError != null) ...[
+            SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                _timeError!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.error,
+                ),
+              )
+            )
+          ],
         ],
       ),
     );
@@ -343,7 +383,10 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       lastDate: DateTime.now().add(Duration(days: 30)),
     );
     if (picked != null) {
-      setState(() => selectedDate = picked);
+      setState((){
+        selectedDate = picked;
+        _validatePickupTime();
+      });
     }
   }
 
@@ -353,7 +396,10 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
-      setState(() => selectedTime = picked);
+      setState((){
+        selectedTime = picked;
+        _validatePickupTime();
+      });
     }
   }
 }
