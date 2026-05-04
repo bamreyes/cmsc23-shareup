@@ -97,7 +97,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     } else {
       setState(() {
         _isLoading = false;
-        if (result.error == "Item already reserved") {
+        if (result.error == "Item already reserved!") {
           _isReserved = true;
         }
       });
@@ -258,7 +258,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppColors.warning50, borderRadius: BorderRadius.circular(12)),
-      child: Text('Item already reserved', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.statusReserved, fontWeight: FontWeight.bold)),
+      child: Text('Item already reserved!', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.statusReserved, fontWeight: FontWeight.bold)),
     );
   }
 
