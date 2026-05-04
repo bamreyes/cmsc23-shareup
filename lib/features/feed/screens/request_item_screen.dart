@@ -1,22 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:project/core/utils/time_ago.dart';
-import '../../../core/constants/colors.dart';
-import '../../../core/models/post_model.dart';
-import '../../../core/models/request_model.dart';
-import '../../../core/models/user_model.dart';
-import '../../../core/services/database_service.dart';
-import '../../../core/widgets/headers/app_header.dart';
-import '../../../core/services/location_service.dart';
-import '../../../core/widgets/inputs/app_text_field.dart';
-import '../../profile/providers/profile_provider.dart';
-import '../../../core/widgets/common/tag.dart';
+import 'package:project/core/constants/colors.dart';
+import 'package:project/core/models/post_model.dart';
+import 'package:project/core/models/request_model.dart';
+import 'package:project/core/services/database_service.dart';
+import 'package:project/core/widgets/headers/app_header.dart';
+import 'package:project/core/services/location_service.dart';
+import 'package:project/core/widgets/inputs/app_text_field.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
+import 'package:project/core/widgets/buttons/primary_button.dart';
+import 'package:project/core/models/user_model.dart';
+import 'package:project/features/feed/widgets/item_header.dart';
+import 'package:project/features/feed/widgets/item_image_section.dart';
+import 'package:project/core/utils/date_formatter.dart';
 
 class RequestItemScreen extends StatefulWidget {
   final PostModel post;
+  final UserModel? initialUser;
+  final String? initialDistance;
 
-  const RequestItemScreen({super.key, required this.post});
+  const RequestItemScreen({
+    super.key,
+    required this.post,
+    this.initialUser,
+    this.initialDistance,
+  });
 
   @override
   State<RequestItemScreen> createState() => _RequestItemScreenState();
@@ -25,6 +34,7 @@ class RequestItemScreen extends StatefulWidget {
 class _RequestItemScreenState extends State<RequestItemScreen> {
   String _uploaderName = "";
   String _distanceLabel = "";
+  UserModel? _uploader;
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
   final TextEditingController _messageController = TextEditingController();
@@ -37,37 +47,55 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   void initState() {
     super.initState();
     _isReserved = widget.post.status == PostStatus.reserved;
+
+    // Set initial values if provided to make it load instantly
+    if (widget.initialUser != null) {
+      _uploader = widget.initialUser;
+      _uploaderName = _uploader!.username;
+      if (_uploaderName.isEmpty) _uploaderName = _uploader!.username;
+    }
+    if (widget.initialDistance != null) {
+      _distanceLabel = widget.initialDistance!;
+    }
+
     _initializeData();
   }
 
   Future<void> _initializeData() async {
-    final userResult = await _databaseService.getUserById(widget.post.userId);
-    String fullName = "Unknown User";
-
-    if (userResult != null && userResult.isSuccess && userResult.data != null) {
-      final user = userResult.data!;
-      fullName = "${user.firstName} ${user.lastName}".trim();
-      if (fullName.isEmpty) fullName = user.username;
+    // Only fetch if data is missing
+    if (_uploader == null) {
+      final userResult = await _databaseService.getUserById(widget.post.userId);
+      if (userResult.isSuccess && userResult.data != null) {
+        final user = userResult.data!;
+        if (mounted) {
+          setState(() {
+            _uploader = user;
+            _uploaderName = "${user.firstName} ${user.lastName}".trim();
+            if (_uploaderName.isEmpty) _uploaderName = user.username;
+          });
+        }
+      }
     }
 
-    final locResult = await _locationService.getCurrentLocation();
-    String distanceText = "Location unavailable";
+    if (_distanceLabel.isEmpty) {
+      final locResult = await _locationService.getCurrentLocation();
+      String distanceText = "Location unavailable";
 
-    if (locResult.isSuccess && locResult.data != null) {
-      final dCalc = _locationService.getDistance(
-        startLatitude: locResult.data!.latitude,
-        startLongitude: locResult.data!.longitude,
-        endLatitude: widget.post.latitude,
-        endLongitude: widget.post.longitude,
-      );
-      distanceText = "${dCalc.data?.toStringAsFixed(1) ?? "0.0"} km away";
-    }
+      if (locResult.isSuccess && locResult.data != null) {
+        final dCalc = _locationService.getDistance(
+          startLatitude: locResult.data!.latitude,
+          startLongitude: locResult.data!.longitude,
+          endLatitude: widget.post.latitude,
+          endLongitude: widget.post.longitude,
+        );
+        distanceText = "${dCalc.data?.toStringAsFixed(1) ?? "0.0"} km away";
+      }
 
-    if (mounted) {
-      setState(() {
-        _uploaderName = fullName;
-        _distanceLabel = distanceText;
-      });
+      if (mounted) {
+        setState(() {
+          _distanceLabel = distanceText;
+        });
+      }
     }
   }
 
@@ -79,14 +107,20 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     setState(() => _isLoading = true);
     final profile = context.read<ProfileProvider>();
 
-    final pickup = DateTime(selectedDate!.year, selectedDate!.month, selectedDate!.day, selectedTime!.hour, selectedTime!.minute);
+    final pickup = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
     final request = RequestModel(
-      postId: widget.post.id!, 
-      requesterId: profile.userId ?? "", 
+      postId: widget.post.id!,
+      requesterId: profile.userId ?? "",
       pickupDatetime: pickup,
-      message: _messageController.text, 
-      status: RequestStatus.pending, 
-      createdAt: DateTime.now()
+      message: _messageController.text,
+      status: RequestStatus.pending,
+      createdAt: DateTime.now(),
     );
     final result = await _databaseService.createRequest(request);
 
@@ -107,182 +141,217 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      appBar: AppHeader.close(title: 'Request', onClose: () => context.pop()),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppHeader.back(title: 'Request', onBack: () => context.pop()),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildUploaderHeader(theme),
-            const SizedBox(height: 20),
-            _buildImageSection(theme),
-            const SizedBox(height: 24),
-            const Divider(color: AppColors.grey200, thickness: 1),
-            const SizedBox(height: 24),
-            _buildScheduleCard(theme),
-            const SizedBox(height: 20),
-            _buildMessageCard(theme),
+            ItemHeader(
+              post: widget.post,
+              user: _uploader,
+              uploaderName: _uploaderName,
+              distance: _distanceLabel,
+            ),
+            SizedBox(height: 20),
+            ItemImageSection(post: widget.post),
+            SizedBox(height: 24),
+            _buildScheduleCard(theme, colorScheme),
+            SizedBox(height: 16),
+            _buildMessageCard(theme, colorScheme),
+            SizedBox(height: 32),
           ],
         ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: _isReserved ? _buildReservedBanner(theme) : _buildRequestButton(),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: _isReserved
+              ? _buildReservedBanner(theme)
+              : _buildRequestButton(),
         ),
       ),
     );
   }
 
-  Widget _buildUploaderHeader(ThemeData theme) {
+  Widget _buildScheduleCard(ThemeData theme, ColorScheme colorScheme) {
+    final borderColor = theme.brightness == Brightness.light
+        ? AppColors.grey200
+        : AppColors.neutral800;
+
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.grey200), borderRadius: BorderRadius.circular(16)),
-      child: Row(
-        children: [
-         CircleAvatar(radius: 20, backgroundImage: NetworkImage(widget.post.image)),
-         const SizedBox(width: 12),
-         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(_uploaderName, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-              Row(
-                children: [
-                  const Icon(Icons.access_time, size: 14, color: AppColors.grey400),
-                  const SizedBox(width: 4),
-                  Text(timeAgo(widget.post.createdAt), style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey400)),
-                  const SizedBox(width: 12),
-
-                  const Icon(Icons.location_on_outlined, size: 14, color: AppColors.grey400),
-                  const SizedBox(width: 4),
-                  Text(_distanceLabel,
-                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey400))
-                ]
-              )
-            ]
-          )
-         )
-        ]
-      )
-    );
-  }
-
-  Widget _buildImageSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadiusGeometry.circular(20),
-          child: Image.network(widget.post.image, height: 380, width: double.infinity, fit: BoxFit.cover),
-        ),
-        const SizedBox(height: 16),
-        Text(widget.post.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 28)),
-        const SizedBox(height: 12),
-        Wrap(spacing: 8, children: widget.post.dietaryTags.map((tag) => Tag(label: tag)).toList()),
-      ]
-    );
-  }
-
-  Widget _buildScheduleCard(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.grey200), borderRadius: BorderRadius.circular(16)),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Pickup Schedule", style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.grey400)),
-          const SizedBox(height: 16),
+          Text(
+            "Pickup Schedule",
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.neutral400,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildInlinePicker("Date", selectedDate == null ? "Select Date" : "${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}", Icons.calendar_today_outlined, _selectDate)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildInlinePicker("Time", selectedTime == null ? "Select Time" : selectedTime!.format(context), Icons.access_time, _selectTime)),
-            ]
-          )
-        ]
-      )
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Date",
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    AppTextField(
+                      hintText: selectedDate == null
+                          ? "Select Date"
+                          : DateFormatter.formatDateShort(selectedDate!),
+                      readOnly: true,
+                      onTap: _selectDate,
+                      suffixIcon: Icon(
+                        Icons.calendar_today_outlined,
+                        size: 18,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Time",
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    AppTextField(
+                      hintText: selectedTime == null
+                          ? "Select Time"
+                          : selectedTime!.format(context),
+                      readOnly: true,
+                      onTap: _selectTime,
+                      suffixIcon: Icon(
+                        Icons.access_time,
+                        size: 18,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildInlinePicker(String label, String value, IconData icon, VoidCallback onTap) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(12)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
-                Icon(icon, size: 18, color: AppColors.grey600),
-              ]
-            )
-          )
-        )
-      ]
-    );
-  }
+  Widget _buildMessageCard(ThemeData theme, ColorScheme colorScheme) {
+    final borderColor = theme.brightness == Brightness.light
+        ? AppColors.grey200
+        : AppColors.neutral800;
 
-  Widget _buildMessageCard(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.grey200), borderRadius: BorderRadius.circular(16)),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Message (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          TextField(
+          Row(
+            children: [
+              Text(
+                "Message ",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                "(Optional) ",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.neutral400,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 12),
+          AppTextField(
             controller: _messageController,
+            hintText: "Hello! I would like to request for this item because...",
             maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Hello! I would like to request for this item because...',
-              filled: true,
-              fillColor: AppColors.grey100,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            )
-          )
-        ]
-      )
+            keyboardType: TextInputType.multiline,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildReservedBanner(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.warning50, borderRadius: BorderRadius.circular(12)),
-      child: Text('Item already reserved', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.statusReserved, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: AppColors.warning50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        'Item already reserved',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: AppColors.statusReserved,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
   Widget _buildRequestButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _handleSubmit,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary500,
-        minimumSize: const Size(double.infinity, 54),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-      ),
-      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Request Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    return PrimaryButton(
+      text: 'Request Item',
+      isLoading: _isLoading,
+      onPressed: _handleSubmit,
     );
   }
 
   Future<void> _selectDate() async {
-    final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 30)));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(Duration(days: 30)),
+    );
     if (picked != null) {
       setState(() => selectedDate = picked);
     }
   }
 
   Future<void> _selectTime() async {
-    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
     if (picked != null) {
       setState(() => selectedTime = picked);
     }

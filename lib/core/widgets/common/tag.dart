@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:project/core/constants/colors.dart';
 
 class Tag extends StatelessWidget {
   final String label;
@@ -18,8 +17,9 @@ class Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveColor = color ?? AppColors.borderLight;
-    final effectiveTextColor = textColor ?? AppColors.black;
+    final colorScheme = theme.colorScheme;
+    final effectiveColor = color ?? colorScheme.outline;
+    final effectiveTextColor = textColor ?? colorScheme.onSurfaceVariant;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

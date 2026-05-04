@@ -50,8 +50,15 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/request',
       builder: (context, state) {
-        final post = state.extra as PostModel;
-        return RequestItemScreen(post: post);
+        final extra = state.extra as Map<String, dynamic>;
+        final post = extra['post'] as PostModel;
+        final user = extra['user'] as UserModel?;
+        final distance = extra['distance'] as String?;
+        return RequestItemScreen(
+          post: post,
+          initialUser: user,
+          initialDistance: distance,
+        );
       },
     ),
     StatefulShellRoute.indexedStack(
