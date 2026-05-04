@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/location_service.dart';
@@ -12,12 +12,8 @@ class ProfileProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
 
   UserModel? _currentUser;
-  double? _latitude;
-  double? _longitude;
 
   UserModel? get currentUser => _currentUser;
-  double? get latitude => _latitude;
-  double? get longitude => _longitude;
   String? get userId => FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> loadCurrentUser() async {
@@ -33,22 +29,52 @@ class ProfileProvider extends ChangeNotifier {
 
   Future<void> updateLocation() async {
     final result = await _locationService.getCurrentLocation();
-    if (result.isError) return;
+    if (result.isError || result.data == null) return;
 
-    _latitude = result.data!.latitude;
-    _longitude = result.data!.longitude;
+    final lat = result.data!.latitude;
+    final lng = result.data!.longitude;
+
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(latitude: lat, longitude: lng);
+    }
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      await _userService.updateUserLocation(uid, _latitude!, _longitude!);
+      await _userService.updateUserLocation(uid, lat, lng);
     }
     notifyListeners();
   }
 
+  Future<void> updateProfile({
+    List<String>? dietaryTags,
+    double? discoveryRadius,
+    AppMode? appMode,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final Map<String, dynamic> data = {};
+    if (dietaryTags != null) data['dietaryTags'] = dietaryTags;
+    if (discoveryRadius != null) data['discoveryRadius'] = discoveryRadius;
+    if (appMode != null) data['appMode'] = appMode.name;
+
+    if (data.isEmpty) return;
+
+    final result = await _userService.updateUser(uid, data);
+    if (result.isSuccess) {
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(
+          dietaryTags: dietaryTags,
+          discoveryRadius: discoveryRadius,
+          appMode: appMode,
+        );
+        notifyListeners();
+      }
+    }
+  }
+
   void clearProfile() {
     _currentUser = null;
-    _latitude = null;
-    _longitude = null;
     notifyListeners();
   }
 }

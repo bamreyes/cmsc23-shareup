@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:project/core/models/user_model.dart';
 import 'package:project/core/theme/app_theme.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
 import 'firebase_options.dart';
@@ -51,13 +52,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<ProfileProvider>();
+    final appMode = profile.currentUser?.appMode ?? AppMode.system;
+
     return MaterialApp.router(
       title: 'ShareUP',
       routerConfig: appRouter,
       debugShowCheckedModeBanner: true,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: _getThemeMode(appMode),
     );
+  }
+
+  ThemeMode _getThemeMode(AppMode mode) {
+    switch (mode) {
+      case AppMode.light:
+        return ThemeMode.light;
+      case AppMode.dark:
+        return ThemeMode.dark;
+      case AppMode.system:
+        return ThemeMode.system;
+    }
   }
 }
