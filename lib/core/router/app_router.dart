@@ -9,6 +9,9 @@ import 'package:project/features/feed/screens/request_item_screen.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/features/home/screens/home_screen.dart';
 import 'package:project/features/exchanges/screens/exchanges_screen.dart';
+import 'package:project/features/exchanges/screens/item_screen.dart';
+import 'package:project/features/exchanges/screens/request_details_screen.dart';
+import 'package:project/core/models/request_model.dart';
 import 'package:project/features/profile/screens/profile_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/core/widgets/navigation/main_navigation_shell.dart';
@@ -38,7 +41,7 @@ final appRouter = GoRouter(
     GoRoute(path: '/signup', builder: (context, state) => const SignUpScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
-      path: '/item',
+      path: '/item-details',
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>;
         final post = extra['post'] as PostModel;
@@ -59,6 +62,25 @@ final appRouter = GoRouter(
           initialUser: user,
           initialDistance: distance,
         );
+      },
+    ),
+    GoRoute(
+      path: '/item',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        final post = extra['post'] as PostModel;
+        final user = extra['user'] as UserModel;
+        return ItemScreen(post: post, user: user);
+      },
+    ),
+    GoRoute(
+      path: '/request-details',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        final request = extra['request'] as RequestModel;
+        final post = extra['post'] as PostModel;
+        final postOwner = extra['postOwner'] as UserModel;
+        return RequestDetailsScreen(request: request, post: post, postOwner: postOwner);
       },
     ),
     StatefulShellRoute.indexedStack(

@@ -10,11 +10,9 @@ import 'package:project/features/profile/providers/profile_provider.dart';
 // ── IMPORT YOUR WIDGETS/SCREENS HERE ───────────────────────
 import 'core/widgets/buttons/primary_button.dart';
 import 'core/widgets/buttons/secondary_button.dart';
-import 'package:project/features/auth/screens/sign_up_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 
 import 'package:project/core/models/post_model.dart';
-import 'package:project/features/feed/screens/feed_item_screen.dart';
 
 // PLAYGROUND GUIDE:
 // 1. To test a FULL SCREEN:
