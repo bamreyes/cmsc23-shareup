@@ -9,6 +9,7 @@ import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
+import 'package:project/features/feed/providers/feed_provider.dart';
 import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/features/feed/widgets/item_header.dart';
@@ -63,29 +64,31 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   }
 
   Future<void> _initializeData() async {
+    final feedProvider = context.read<FeedProvider>();
+    final profileProvider = context.read<ProfileProvider>();
+    
     // Only fetch if data is missing
     if (_uploader == null) {
-      final userResult = await _databaseService.getUserById(widget.post.userId);
-      if (userResult.isSuccess && userResult.data != null) {
-        final user = userResult.data!;
-        if (mounted) {
-          setState(() {
-            _uploader = user;
-            _uploaderName = "${user.firstName} ${user.lastName}".trim();
-            if (_uploaderName.isEmpty) _uploaderName = user.username;
-          });
-        }
+      await feedProvider.fetchUser(widget.post.userId);
+      final user = feedProvider.getUser(widget.post.userId);
+      
+      if (user != null && mounted) {
+        setState(() {
+          _uploader = user;
+          _uploaderName = "${user.firstName} ${user.lastName}".trim();
+          if (_uploaderName.isEmpty) _uploaderName = user.username;
+        });
       }
     }
 
     if (_distanceLabel.isEmpty) {
-      final locResult = await _locationService.getCurrentLocation();
+      final currentUser = profileProvider.currentUser;
       String distanceText = "Location unavailable";
 
-      if (locResult.isSuccess && locResult.data != null) {
+      if (currentUser != null) {
         final dCalc = _locationService.getDistance(
-          startLatitude: locResult.data!.latitude,
-          startLongitude: locResult.data!.longitude,
+          startLatitude: currentUser.latitude,
+          startLongitude: currentUser.longitude,
           endLatitude: widget.post.latitude,
           endLongitude: widget.post.longitude,
         );
