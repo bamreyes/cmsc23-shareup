@@ -12,7 +12,6 @@ class DatabaseService {
       await _firestore.collection('posts').add(post.toJson());
       return Result.success(true);
     } catch (e) {
-      print("Error creating post: $e");
       return Result.error(e.toString());
     }
   }
@@ -40,6 +39,61 @@ class DatabaseService {
         return Result.success(PostModel.fromJson(doc.data()!, doc.id));
       }
       return Result.error("No post with id exists");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(String postId) async {
+    try {
+      final postResult = await getPostById(postId);
+      if (postResult.isSuccess && postResult.data != null) {
+        final post = postResult.data!;
+        final userResult = await getUserById(post.userId);
+        if (userResult.isSuccess && userResult.data != null) {
+          return Result.success({
+            'post': post,
+            'owner': userResult.data!,
+          });
+        }
+        return Result.error(userResult.error ?? "Failed to fetch user");
+      }
+      return Result.error(postResult.error ?? "Failed to fetch post");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<RequestModel>> getRequestByPostId(String postId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('requests')
+          .where('postId', isEqualTo: postId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return Result.success(RequestModel.fromJson(
+            snapshot.docs.first.data(), snapshot.docs.first.id));
+      }
+      return Result.error("Request not found");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<List<PostModel>>> getMyPosts(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('posts')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final myPosts = snapshot.docs
+          .map((doc) => PostModel.fromJson(doc.data(), doc.id))
+          .toList();
+      return Result.success(myPosts);
     } catch (e) {
       return Result.error(e.toString());
     }
@@ -101,6 +155,22 @@ class DatabaseService {
         });
         return Result.success(true);
       });
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<List<RequestModel>>> getMyRequests(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('requests')
+          .where('requesterId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
+      final posts = snapshot.docs
+          .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
+          .toList();
+      return Result.success(posts);
     } catch (e) {
       return Result.error(e.toString());
     }

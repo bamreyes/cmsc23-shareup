@@ -22,7 +22,7 @@ class Tag extends StatelessWidget {
     final effectiveTextColor = textColor ?? colorScheme.onSurfaceVariant;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isFilled ? effectiveColor : Colors.transparent,
         border: isFilled ? null : Border.all(color: effectiveColor),

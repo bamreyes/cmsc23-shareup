@@ -72,20 +72,37 @@ class _FeedScreenState extends State<FeedScreen> {
           ); // sort based on distance
 
     if (feedProvider.isLoading && postsData.isEmpty) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppHeader.title(title: "Feed"),
       body: RefreshIndicator(
         onRefresh: () => feedProvider.fetchAllPosts(),
-        child: ListView.builder(
-          itemCount: postsData.length,
-          itemBuilder: (context, index) {
-            final item = postsData[index];
-            return FeedPost(post: item.post, distance: item.distance);
-          },
-        ),
+        child: postsData.isEmpty
+            ? ListView(
+                physics: AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  Center(
+                    child: Text(
+                      feedProvider.error != null
+                          ? 'Error: ${feedProvider.error}'
+                          : 'No posts found nearby with your preferences.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ],
+              )
+            : ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: postsData.length,
+                itemBuilder: (context, index) {
+                  final item = postsData[index];
+                  return FeedPost(post: item.post, distance: item.distance);
+                },
+              ),
       ),
     );
   }

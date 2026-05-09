@@ -65,23 +65,23 @@ class PostModel {
   factory PostModel.fromJson(Map<String, dynamic> json, String docId) {
     return PostModel(
       id: docId,
-      userId: json['userId'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String,
-      image: json['image'] as String,
-      expirationDate: ((json['expirationDate'] ?? json['expiration_date']) as Timestamp).toDate(),
+      userId: json['userId'] as String? ?? '',
+      name: json['name'] as String? ?? 'Unknown',
+      description: json['description'] as String? ?? '',
+      image: json['image'] as String? ?? '',
+      expirationDate: ((json['expirationDate'] ?? json['expiration_date'] ?? Timestamp.now()) as Timestamp).toDate(),
       dietaryTags: List<String>.from(json['dietaryTags'] ?? []),
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
-      locationName: json['locationName'] as String,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      locationName: json['locationName'] as String? ?? 'Unknown Location',
       status: PostStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => PostStatus.available,
       ),
       receiverId: json['receiverId'] as String?,
       qrCode: json['qrCode'] as String?,
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
-      updatedAt: (json['updatedAt'] as Timestamp).toDate(),
+      createdAt: ((json['createdAt'] ?? Timestamp.now()) as Timestamp).toDate(),
+      updatedAt: ((json['updatedAt'] ?? Timestamp.now()) as Timestamp).toDate(),
     );
   }
 }

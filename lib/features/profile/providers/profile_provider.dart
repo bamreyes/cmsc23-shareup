@@ -11,6 +11,17 @@ class ProfileProvider extends ChangeNotifier {
   final LocationService _locationService = LocationService();
   final DatabaseService _databaseService = DatabaseService();
 
+  ProfileProvider() {
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        loadCurrentUser();
+      } else {
+        _currentUser = null;
+        notifyListeners();
+      }
+    });
+  }
+
   UserModel? _currentUser;
 
   UserModel? get currentUser => _currentUser;

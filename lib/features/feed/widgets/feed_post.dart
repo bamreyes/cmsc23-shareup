@@ -42,7 +42,7 @@ class _FeedPostState extends State<FeedPost> {
 
     return InkWell(
       onTap: () => context.push(
-        '/item',
+        '/item-details',
         extra: {
           'post': widget.post,
           'user': _postUser,
