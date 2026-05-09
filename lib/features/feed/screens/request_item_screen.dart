@@ -9,6 +9,7 @@ import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
+import 'package:project/features/feed/providers/feed_provider.dart';
 import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/features/feed/widgets/item_header.dart';
@@ -37,6 +38,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   UserModel? _uploader;
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+  String? _timeError;
   final TextEditingController _messageController = TextEditingController();
   final _databaseService = DatabaseService();
   final _locationService = LocationService();
@@ -62,29 +64,31 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   }
 
   Future<void> _initializeData() async {
+    final feedProvider = context.read<FeedProvider>();
+    final profileProvider = context.read<ProfileProvider>();
+    
     // Only fetch if data is missing
     if (_uploader == null) {
-      final userResult = await _databaseService.getUserById(widget.post.userId);
-      if (userResult.isSuccess && userResult.data != null) {
-        final user = userResult.data!;
-        if (mounted) {
-          setState(() {
-            _uploader = user;
-            _uploaderName = "${user.firstName} ${user.lastName}".trim();
-            if (_uploaderName.isEmpty) _uploaderName = user.username;
-          });
-        }
+      await feedProvider.fetchUser(widget.post.userId);
+      final user = feedProvider.getUser(widget.post.userId);
+      
+      if (user != null && mounted) {
+        setState(() {
+          _uploader = user;
+          _uploaderName = "${user.firstName} ${user.lastName}".trim();
+          if (_uploaderName.isEmpty) _uploaderName = user.username;
+        });
       }
     }
 
     if (_distanceLabel.isEmpty) {
-      final locResult = await _locationService.getCurrentLocation();
+      final currentUser = profileProvider.currentUser;
       String distanceText = "Location unavailable";
 
-      if (locResult.isSuccess && locResult.data != null) {
+      if (currentUser != null) {
         final dCalc = _locationService.getDistance(
-          startLatitude: locResult.data!.latitude,
-          startLongitude: locResult.data!.longitude,
+          startLatitude: currentUser.latitude,
+          startLongitude: currentUser.longitude,
           endLatitude: widget.post.latitude,
           endLongitude: widget.post.longitude,
         );
@@ -99,8 +103,34 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     }
   }
 
-  void _handleSubmit() async {
+  void _validatePickupTime() {
     if (selectedDate == null || selectedTime == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final pickup = DateTime(
+      selectedDate!.year,
+      selectedDate!.month,
+      selectedDate!.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
+    final oneHourFromNow = now.add(const Duration(hours: 1));
+
+    setState(() {
+      if (pickup.isBefore(now)) {
+        _timeError = "Selected time has already passed.";
+      } else if (pickup.isBefore(oneHourFromNow)) {
+        _timeError = "Selected time must at least an hour from now.";
+      } else {
+        _timeError = null;
+      }
+    });
+  }
+
+  void _handleSubmit() async {
+    if (selectedDate == null || selectedTime == null || _timeError != null) {
       return;
     }
 
@@ -131,7 +161,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     } else {
       setState(() {
         _isLoading = false;
-        if (result.error == "Item already reserved") {
+        if (result.error == "Item already reserved!") {
           _isReserved = true;
         }
       });
@@ -259,6 +289,19 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
               ),
             ],
           ),
+          if (_timeError != null) ...[
+            SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                _timeError!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.error,
+                ),
+              )
+            )
+          ],
         ],
       ),
     );
@@ -343,7 +386,10 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       lastDate: DateTime.now().add(Duration(days: 30)),
     );
     if (picked != null) {
-      setState(() => selectedDate = picked);
+      setState((){
+        selectedDate = picked;
+        _validatePickupTime();
+      });
     }
   }
 
@@ -353,7 +399,10 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
-      setState(() => selectedTime = picked);
+      setState((){
+        selectedTime = picked;
+        _validatePickupTime();
+      });
     }
   }
 }
