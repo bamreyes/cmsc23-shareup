@@ -29,4 +29,19 @@ class RequestModel {
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
+
+  factory RequestModel.fromJson(Map<String, dynamic> data, String docId) {
+    return RequestModel(
+      postId: data['postId'],
+      requesterId: data['requesterId'],
+      pickupDatetime: ((data['pickupDatetime'] ?? data['pickupDateTime'] ?? Timestamp.now()) as Timestamp)
+          .toDate(),
+      message: data['message'],
+      status: RequestStatus.values.firstWhere(
+        (e) => e.name == data['status'],
+        orElse: () => RequestStatus.pending,
+      ),
+      createdAt: ((data['createdAt'] ?? Timestamp.now()) as Timestamp).toDate(),
+    );
+  }
 }
