@@ -127,7 +127,10 @@ class AuthProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
       notificationPreferences: _notificationPreferences,
     );
-    _user.addUser(user);
+    final addResult = await _user.addUser(user);
+    if (addResult.isError) {
+      return addResult;
+    }
     return Result.success("Successfully signed up the user");
   }
 
@@ -143,7 +146,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<Result<String?>> logOut() async {
-    return await _auth.logOut();
+    final result = await _auth.logOut();
+    clearProvider();
+    return result;
   }
 }
 

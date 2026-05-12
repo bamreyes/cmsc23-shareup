@@ -35,9 +35,6 @@ class AuthService {
         email: email,
         password: password,
       );
-      // log out after sign up
-      await _auth.signOut();
-
       return Result.success(credential.user);
     } on FirebaseAuthException catch (e) {
       String message = e.message ?? 'An error occurred.';

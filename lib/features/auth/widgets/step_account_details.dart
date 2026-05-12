@@ -46,12 +46,6 @@ class _AccountDetailsState extends State<AccountDetails> {
     if (!password.contains(RegExp(r'[a-z]'))) {
       return 'Add at least one lowercase letter.';
     }
-    if (!password.contains(RegExp(r'[0-9]'))) {
-      return 'Add at least one number.';
-    }
-    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-      return 'Add at least one special character.';
-    }
     return null;
   }
 
@@ -75,111 +69,132 @@ class _AccountDetailsState extends State<AccountDetails> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AppTextField(
-          controller: _usernameController,
-          labelText: "Username",
-          hintText: "Enter Username",
-          autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-          onChanged: (value) async {
-            final result = await userService.isUsernameUnique(value);
-            if (result.isSuccess) {
-              final isUnique = result.data == true;
-              final exists = !isUnique;
-              if (_usernameExists != exists) {
-                setState(() => _usernameExists = exists);
-                widget.formKey.currentState?.validate();
-              }
-            }
-          },
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Username is required';
-            }
-            if (value.length < 5) {
-              return 'Username is too short';
-            }
-            if (value.length > 20) {
-              return 'Username is too long';
-            }
-            if (!RegExp(r'^[A-Za-z0-9_.]+$').hasMatch(value)) {
-              return 'Special characters other than (_) or (.) are not allowed';
-            }
-            if (_usernameExists) {
-              return 'Username is already taken';
-            }
-            return null;
-          },
-          onSaved: (value) => handleOnSave(value),
-        ),
-        SizedBox(height: 16),
-        AppTextField(
-          controller: _emailController,
-          labelText: "Email",
-          hintText: "Enter Email",
-          autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-          keyboardType: TextInputType.emailAddress,
-          onChanged: (value) async {
-            final result = await userService.isEmailUnique(value);
-            if (result.isSuccess) {
-              final isUnique = result.data == true;
-              final exists = !isUnique;
-              if (_emailExists != exists) {
-                setState(() => _emailExists = exists);
-                widget.formKey.currentState?.validate();
-              }
-            }
-          },
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Email is required';
-            }
-            if (!EmailValidator.validate(value)) {
-              return 'Email is invalid';
-            }
-            if (_emailExists) {
-              return 'Email already exists';
-            }
-            return null;
-          },
-          onSaved: (value) => handleOnSave(value),
-        ),
-        SizedBox(height: 16),
-        AppTextField(
-          controller: _passwordController,
-          labelText: "Password",
-          hintText: "Enter Password",
-          autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-          hiddenText: true,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Password is required';
-            }
-            return validatePassword(value);
-          },
-          onSaved: (value) => handleOnSave(value),
-        ),
-        SizedBox(height: 16),
-        AppTextField(
-          controller: _confirmPasswordController,
-          labelText: "Confirm Password",
-          hintText: "Confirm Password",
-          autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-          hiddenText: true,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please confirm your password';
-            }
-            if (value != _passwordController.text) {
-              return 'Passwords do not match';
-            }
-            return null;
-          },
-          onSaved: (value) => handleOnSave(value),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  "Account Details",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Tell us more about your preferences so we can customize your experience.",
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 40),
+                AppTextField(
+                  controller: _usernameController,
+                  labelText: "Username",
+                  hintText: "Enter Username",
+                  autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                  onChanged: (value) async {
+                    final result = await userService.isUsernameUnique(value);
+                    if (result.isSuccess) {
+                      final isUnique = result.data == true;
+                      final exists = !isUnique;
+                      if (_usernameExists != exists) {
+                        setState(() => _usernameExists = exists);
+                        widget.formKey.currentState?.validate();
+                      }
+                    }
+                  },
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Username is required';
+                    }
+                    if (value.length < 5) {
+                      return 'Username is too short';
+                    }
+                    if (value.length > 20) {
+                      return 'Username is too long';
+                    }
+                    if (!RegExp(r'^[A-Za-z0-9_.]+$').hasMatch(value)) {
+                      return 'Special characters other than (_) or (.) are not allowed';
+                    }
+                    if (_usernameExists) {
+                      return 'Username is already taken';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => handleOnSave(value),
+                ),
+                SizedBox(height: 16),
+                AppTextField(
+                  controller: _emailController,
+                  labelText: "Email",
+                  hintText: "Enter Email",
+                  autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                  keyboardType: TextInputType.emailAddress,
+                  onChanged: (value) async {
+                    final result = await userService.isEmailUnique(value);
+                    if (result.isSuccess) {
+                      final isUnique = result.data == true;
+                      final exists = !isUnique;
+                      if (_emailExists != exists) {
+                        setState(() => _emailExists = exists);
+                        widget.formKey.currentState?.validate();
+                      }
+                    }
+                  },
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Email is required';
+                    }
+                    if (!EmailValidator.validate(value)) {
+                      return 'Email is invalid';
+                    }
+                    if (_emailExists) {
+                      return 'Email already exists';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => handleOnSave(value),
+                ),
+                SizedBox(height: 16),
+                AppTextField(
+                  controller: _passwordController,
+                  labelText: "Password",
+                  hintText: "Enter Password",
+                  autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                  hiddenText: true,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Password is required';
+                    }
+                    return validatePassword(value);
+                  },
+                  onSaved: (value) => handleOnSave(value),
+                ),
+                SizedBox(height: 16),
+                AppTextField(
+                  controller: _confirmPasswordController,
+                  labelText: "Confirm Password",
+                  hintText: "Confirm Password",
+                  autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                  hiddenText: true,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => handleOnSave(value),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
