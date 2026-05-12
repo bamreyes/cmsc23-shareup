@@ -57,6 +57,8 @@ class _UserPreferencesState extends State<UserPreferences> {
   }
 
   Widget buildTags(AuthProvider authProvider) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final myTags = authProvider.dietaryTags;
     return FormField(
       validator: (_) => myTags.isEmpty ? 'Selection required' : null,
@@ -65,9 +67,18 @@ class _UserPreferencesState extends State<UserPreferences> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              "Dietary Preferences",
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            SizedBox(height: 8),
             Wrap(
-              spacing: 8.0,
-              runSpacing: 16.0,
+              spacing: 6,
+              runSpacing: 10,
               children: List.generate(dietaryTags.length, (index) {
                 final tag = dietaryTags[index];
                 final isSelected = myTags.contains(tag);
@@ -85,7 +96,7 @@ class _UserPreferencesState extends State<UserPreferences> {
             ),
             if (state.hasError)
               Padding(
-                padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                padding: EdgeInsets.only(top: 8, left: 12),
                 child: Text(
                   state.errorText!,
                   style: TextStyle(
@@ -104,44 +115,62 @@ class _UserPreferencesState extends State<UserPreferences> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AppTextField(
-            controller: _firstNameController,
-            labelText: "First Name",
-            hintText: "Enter First Name",
-            keyboardType: TextInputType.name,
-            autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'First Name is required';
-              }
-              return null;
-            },
-            onSaved: (value) => handleOnSave(value),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  "User Preferences",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Tell us more about your preferences so we can customize your experience.",
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 40),
+                AppTextField(
+                  controller: _firstNameController,
+                  labelText: "First Name",
+                  hintText: "Enter First Name",
+                  keyboardType: TextInputType.name,
+                  autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'First Name is required';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => handleOnSave(value),
+                ),
+                SizedBox(height: 16),
+                AppTextField(
+                  controller: _lastNameController,
+                  labelText: "Last Name",
+                  hintText: "Enter Last name",
+                  keyboardType: TextInputType.name,
+                  autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Last Name is required';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) => handleOnSave(value),
+                ),
+                SizedBox(height: 24),
+                buildTags(authProvider),
+              ],
+            ),
           ),
-          SizedBox(height: 16),
-          AppTextField(
-            controller: _lastNameController,
-            labelText: "Last Name",
-            hintText: "Enter Last name",
-            keyboardType: TextInputType.name,
-            autovalidateMode: AutovalidateMode.onUserInteractionIfError,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Last Name is required';
-              }
-              return null;
-            },
-            onSaved: (value) => handleOnSave(value),
-          ),
-          SizedBox(height: 16),
-          Text("What is your dietary preference?"),
-          buildTags(authProvider),
-        ],
-      ),
+        );
+      },
     );
   }
 }
