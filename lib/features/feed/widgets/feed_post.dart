@@ -60,42 +60,45 @@ class _FeedPostState extends State<FeedPost> {
   }
 
   Widget _buildPostHeader(String? distanceText) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundImage: NetworkImage(_postUser!.profileImage),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _postUser!.username,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
-                const SizedBox(width: 4),
-                Text(
-                  timeAgo(widget.post.createdAt),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                if (distanceText != null) ...[
-                  const SizedBox(width: 16),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundImage: NetworkImage(_postUser!.profileImage),
+          ),
+          SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "@${_postUser!.username}",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Row(
+                children: [
                   Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   Text(
-                    distanceText,
+                    timeAgo(widget.post.createdAt),
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
+                  if (distanceText != null) ...[
+                    SizedBox(width: 16),
+                    Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
+                    SizedBox(width: 4),
+                    Text(
+                      distanceText,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
-        ),
-      ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -111,8 +114,8 @@ class _FeedPostState extends State<FeedPost> {
           ),
         ),
         Positioned(
-          top: 12,
-          right: 12,
+          top: 10,
+          right: 10,
           child: ExpirationTag(expirationDate: widget.post.expirationDate),
         ),
       ],
@@ -120,18 +123,31 @@ class _FeedPostState extends State<FeedPost> {
   }
 
   Widget _buildPostDetails() {
-    return Column(
-      children: [
-        Text(widget.post.name),
-        Text(widget.post.description),
-        Wrap(
-          spacing: 8.0,
-          runSpacing: 8.0,
-          children: widget.post.dietaryTags
-              .map((tag) => Tag(label: tag))
-              .toList(),
-        ),
-      ],
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.post.name,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 4),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: widget.post.dietaryTags
+                  .map((tag) => Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Tag(label: tag),
+                  ))
+                  .toList(),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(widget.post.description, style: TextStyle(fontSize: 14)),
+        ],
+      ),
     );
   }
 }

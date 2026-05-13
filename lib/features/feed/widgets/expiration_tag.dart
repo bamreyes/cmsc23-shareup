@@ -28,7 +28,7 @@ class ExpirationTag extends StatelessWidget {
         '${_monthNames[expirationDate.month - 1]} ${expirationDate.day}';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
@@ -36,13 +36,13 @@ class ExpirationTag extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.calendar_today, size: 14, color: Colors.white),
-          const SizedBox(width: 6),
+          Icon(Icons.calendar_today, size: 12, color: Colors.white),
+          SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),

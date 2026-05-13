@@ -50,27 +50,30 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     return AppHeader(
       centerTitle: false,
       leading: _Avatar(url: avatarUrl, onPressed: onAvatarPressed),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Builder(
-            builder: (context) => Text(
-              'Hello,',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.neutral400
-                    : AppColors.neutral500,
-                fontWeight: FontWeight.w500,
+      title: Padding(
+        padding: const EdgeInsets.only(left: 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Builder(
+              builder: (context) => Text(
+                'Hello,',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.neutral400
+                      : AppColors.neutral500,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-          Text(
-            name,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ],
+            Text(
+              name,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
       actions: [
         _CircleIconButton(
@@ -84,14 +87,11 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
 
   factory AppHeader.title({
     required String title,
-    String? avatarUrl,
     VoidCallback? onNotificationPressed,
-    VoidCallback? onAvatarPressed,
     PreferredSizeWidget? bottom,
   }) {
     return AppHeader(
       centerTitle: true,
-      leading: _Avatar(url: avatarUrl, onPressed: onAvatarPressed),
       title: Text(
         title,
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),

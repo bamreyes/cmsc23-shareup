@@ -29,7 +29,7 @@ class ExchangesRequest extends StatelessWidget {
       post: post,
       headerTag: ExchangeRequestStatusTag(status: request.status),
       pickupDetails: _buildPickupDetails(),
-      alert: _buildAlert(),
+      alert: _buildAlert(context),
       onTap: () {
         context.push(
           '/request-details',
@@ -58,13 +58,13 @@ class ExchangesRequest extends StatelessWidget {
             title: 'Date',
             detail: DateFormatter.formatDate(request.pickupDatetime),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 10),
           _buildDetails(
             icon: Icons.access_time_rounded,
             title: 'Time',
             detail: DateFormatter.formatTime(request.pickupDatetime),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 10),
           _buildDetails(
             icon: Icons.location_pin,
             title: 'Location',
@@ -83,13 +83,17 @@ class ExchangesRequest extends StatelessWidget {
     return ExchangeDetailRow(icon: icon, title: title, detail: detail);
   }
 
-  Widget _buildAlert() {
+  Widget _buildAlert(BuildContext context) {
     if (request.status == RequestStatus.accepted) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 8),
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.success50,
+          color: isDark
+              ? AppColors.success500.withValues(alpha: 0.15)
+              : AppColors.success50,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../constants/dietary_tag_colors.dart';
+import '../../constants/colors.dart';
 
 class Tag extends StatelessWidget {
   final String label;
@@ -16,23 +18,22 @@ class Tag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final effectiveColor = color ?? colorScheme.outline;
-    final effectiveTextColor = textColor ?? colorScheme.onSurfaceVariant;
+    final tagColor = color ?? DietaryTagColors.colorFor(label);
+    final bgColor = DietaryTagColors.backgroundFor(label);
+    final effectiveTextColor = textColor ?? tagColor;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isFilled ? effectiveColor : Colors.transparent,
-        border: isFilled ? null : Border.all(color: effectiveColor),
+        color: isFilled ? tagColor : bgColor,
+        border: Border.all(color: tagColor.withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: effectiveTextColor,
-          fontWeight: FontWeight.w500,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: isFilled ? AppColors.neutral100 : effectiveTextColor,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

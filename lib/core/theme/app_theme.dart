@@ -16,7 +16,7 @@ class AppTheme {
         onPrimary: AppColors.neutral0,
         primaryContainer: AppColors.primary100,
         onPrimaryContainer: AppColors.primary900,
-        secondary: AppColors.statusDone, // Info blue
+        secondary: AppColors.statusDone,
         error: AppColors.error500,
         onSurface: AppColors.neutral900,
         surface: AppColors.neutral0,
@@ -159,6 +159,19 @@ class AppTheme {
         valueIndicatorColor: AppColors.primary700,
         valueIndicatorTextStyle: const TextStyle(color: Colors.white),
         trackHeight: 4.0,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.neutral0;
+          return AppColors.neutral0;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primary500;
+          }
+          return AppColors.neutral200;
+        }),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
     );
   }
@@ -309,6 +322,19 @@ class AppTheme {
         valueIndicatorColor: AppColors.primary700,
         valueIndicatorTextStyle: const TextStyle(color: Colors.white),
         trackHeight: 4.0,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.neutral0;
+          return AppColors.neutral400;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primary500;
+          }
+          return AppColors.neutral800;
+        }),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
     );
   }

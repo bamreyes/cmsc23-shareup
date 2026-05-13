@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:project/core/constants/colors.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
-import 'package:project/core/services/database_service.dart';
 import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
@@ -12,6 +11,7 @@ import 'package:project/features/profile/providers/profile_provider.dart';
 import 'package:project/features/feed/providers/feed_provider.dart';
 import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/models/user_model.dart';
+import 'package:project/features/exchanges/providers/exchange_provider.dart';
 import 'package:project/features/feed/widgets/item_header.dart';
 import 'package:project/features/feed/widgets/item_image_section.dart';
 import 'package:project/core/utils/date_formatter.dart';
@@ -40,7 +40,6 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   TimeOfDay? selectedTime;
   String? _timeError;
   final TextEditingController _messageController = TextEditingController();
-  final _databaseService = DatabaseService();
   final _locationService = LocationService();
   bool _isLoading = false;
   bool _isReserved = false;
@@ -66,12 +65,12 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   Future<void> _initializeData() async {
     final feedProvider = context.read<FeedProvider>();
     final profileProvider = context.read<ProfileProvider>();
-    
+
     // Only fetch if data is missing
     if (_uploader == null) {
       await feedProvider.fetchUser(widget.post.userId);
       final user = feedProvider.getUser(widget.post.userId);
-      
+
       if (user != null && mounted) {
         setState(() {
           _uploader = user;
@@ -103,11 +102,8 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     }
   }
 
-  void _validatePickupTime() {
-    if (selectedDate == null || selectedTime == null) {
-      return;
-    }
-
+  String? _getValidationError() {
+    if (selectedDate == null || selectedTime == null) return null;
     final now = DateTime.now();
     final pickup = DateTime(
       selectedDate!.year,
@@ -118,19 +114,28 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     );
     final oneHourFromNow = now.add(const Duration(hours: 1));
 
+    if (pickup.isBefore(now)) {
+      return "Selected time has already passed.";
+    } else if (pickup.isBefore(oneHourFromNow)) {
+      return "Selected time must at least an hour from now.";
+    }
+    return null;
+  }
+
+  void _validatePickupTime() {
     setState(() {
-      if (pickup.isBefore(now)) {
-        _timeError = "Selected time has already passed.";
-      } else if (pickup.isBefore(oneHourFromNow)) {
-        _timeError = "Selected time must at least an hour from now.";
-      } else {
-        _timeError = null;
-      }
+      _timeError = _getValidationError();
     });
   }
 
   void _handleSubmit() async {
-    if (selectedDate == null || selectedTime == null || _timeError != null) {
+    final freshError = _getValidationError();
+    if (freshError != null) {
+      setState(() => _timeError = freshError);
+      return;
+    }
+
+    if (selectedDate == null || selectedTime == null) {
       return;
     }
 
@@ -152,19 +157,28 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       status: RequestStatus.pending,
       createdAt: DateTime.now(),
     );
-    final result = await _databaseService.createRequest(request);
+    final result = await context.read<ExchangeProvider>().createRequest(
+      request,
+    );
 
     if (result.isSuccess) {
       if (mounted) {
         context.pop();
       }
     } else {
-      setState(() {
-        _isLoading = false;
+      setState(() => _isLoading = false);
+      if (mounted) {
         if (result.error == "Item already reserved!") {
-          _isReserved = true;
+          setState(() => _isReserved = true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.error ?? "Failed to request item"),
+              backgroundColor: AppColors.error500,
+            ),
+          );
         }
-      });
+      }
     }
   }
 
@@ -172,11 +186,20 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final exchangeProvider = context.watch<ExchangeProvider>();
+
+    final isAlreadyRequested = exchangeProvider.requests.any(
+      (r) =>
+          r.postId == widget.post.id &&
+          (r.status == RequestStatus.pending ||
+              r.status == RequestStatus.accepted),
+    );
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppHeader.back(title: 'Request', onBack: () => context.pop()),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -199,9 +222,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: _isReserved
-              ? _buildReservedBanner(theme)
-              : _buildRequestButton(),
+          child: _buildRequestButton(isAlreadyRequested),
         ),
       ),
     );
@@ -299,8 +320,8 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
                   fontWeight: FontWeight.w500,
                   color: colorScheme.error,
                 ),
-              )
-            )
+              ),
+            ),
           ],
         ],
       ),
@@ -353,24 +374,13 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
     );
   }
 
-  Widget _buildReservedBanner(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.warning50,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'Item already reserved',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: AppColors.statusReserved,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequestButton() {
+  Widget _buildRequestButton(bool isAlreadyRequested) {
+    if (_isReserved) {
+      return PrimaryButton(text: 'Item Already Reserved', onPressed: null);
+    }
+    if (isAlreadyRequested) {
+      return PrimaryButton(text: 'Item Already Requested', onPressed: null);
+    }
     return PrimaryButton(
       text: 'Request Item',
       isLoading: _isLoading,
@@ -386,7 +396,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       lastDate: DateTime.now().add(Duration(days: 30)),
     );
     if (picked != null) {
-      setState((){
+      setState(() {
         selectedDate = picked;
         _validatePickupTime();
       });
@@ -399,7 +409,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
-      setState((){
+      setState(() {
         selectedTime = picked;
         _validatePickupTime();
       });

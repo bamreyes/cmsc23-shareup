@@ -51,7 +51,7 @@ class ItemImageSection extends StatelessWidget {
               SizedBox(height: 4),
               Wrap(
                 spacing: 8,
-                runSpacing: 4,
+                runSpacing: 8,
                 children: post.dietaryTags
                     .map((tag) => Tag(label: tag))
                     .toList(),

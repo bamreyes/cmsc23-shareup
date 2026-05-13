@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/inputs/app_text_field.dart';
+import 'package:project/core/constants/dietary_tag_colors.dart';
 import 'package:project/core/widgets/buttons/toggle_button.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -85,6 +86,7 @@ class _UserPreferencesState extends State<UserPreferences> {
                 return ToggleButton(
                   text: tag,
                   isSelected: isSelected,
+                  activeColor: DietaryTagColors.colorFor(tag),
                   onPressed: () {
                     authProvider.toggleDietaryTag(tag);
                     if (state.hasError) {

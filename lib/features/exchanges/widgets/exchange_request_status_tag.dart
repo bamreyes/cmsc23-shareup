@@ -9,34 +9,45 @@ class ExchangeRequestStatusTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color backgroundColor;
     Color accentColor;
     String label;
 
     switch (status) {
       case RequestStatus.pending:
-        backgroundColor = AppColors.warning50;
         accentColor = AppColors.statusReserved;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.warning50;
         label = 'Pending';
         break;
       case RequestStatus.accepted:
-        backgroundColor = AppColors.success50;
         accentColor = AppColors.statusActive;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.success50;
         label = 'Accepted';
         break;
       case RequestStatus.rejected:
-        backgroundColor = AppColors.error50;
         accentColor = AppColors.statusExpired;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.error50;
         label = 'Rejected';
         break;
       case RequestStatus.cancelled:
-        backgroundColor = AppColors.error50;
         accentColor = AppColors.statusExpired;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.error50;
         label = 'Cancelled';
         break;
       case RequestStatus.completed:
-        backgroundColor = const Color(0xFFEFF6FF);
         accentColor = AppColors.statusDone;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : const Color(0xFFEFF6FF);
         label = 'Completed';
         break;
     }

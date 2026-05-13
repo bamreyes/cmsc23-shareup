@@ -78,7 +78,7 @@ class AppColors {
   // ── Helpers ───────────────────────────────────────────
   static Color expiryColor(DateTime expiryDate) {
     final days = expiryDate.difference(DateTime.now()).inDays;
-    if (days <= 3) return error500;
+    if (days <= 1) return error500;
     if (days <= 7) return warning500;
     return success500;
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:project/core/constants/colors.dart';
+import 'package:project/core/constants/dietary_tag_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
 import 'package:project/core/widgets/buttons/toggle_button.dart';
@@ -58,36 +60,50 @@ class _DietaryPreferencesState extends State<DietaryPreferences> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final borderColor = theme.brightness == Brightness.light
+        ? AppColors.grey200
+        : AppColors.neutral800;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Dietary Preferences',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
-        SizedBox(height: 16),
-        Wrap(
-          spacing: 8.0,
-          runSpacing: 16.0,
-          children: List.generate(dietaryTags.length, (index) {
-            final tag = dietaryTags[index];
-            final isSelected = _currentTags.contains(tag);
+        SizedBox(height: 8),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 10,
+            children: List.generate(dietaryTags.length, (index) {
+              final tag = dietaryTags[index];
+              final isSelected = _currentTags.contains(tag);
 
-            return ToggleButton(
-              text: tag,
-              isSelected: isSelected,
-              onPressed: () {
-                setState(() {
-                  if (isSelected && _currentTags.length > 1) {
-                    _currentTags.remove(tag);
-                  } else if (!isSelected) {
-                    _currentTags.add(tag);
-                  }
-                });
-                widget.onChanged?.call(_currentTags);
-              },
-            );
-          }),
+              return ToggleButton(
+                text: tag,
+                isSelected: isSelected,
+                activeColor: DietaryTagColors.colorFor(tag),
+                onPressed: () {
+                  setState(() {
+                    if (isSelected && _currentTags.length > 1) {
+                      _currentTags.remove(tag);
+                    } else if (!isSelected) {
+                      _currentTags.add(tag);
+                    }
+                  });
+                  widget.onChanged?.call(_currentTags);
+                },
+              );
+            }),
+          ),
         ),
       ],
     );

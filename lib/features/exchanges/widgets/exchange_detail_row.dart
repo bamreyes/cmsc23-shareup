@@ -15,15 +15,21 @@ class ExchangeDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(8),
+          padding: EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: AppColors.neutral100,
+            color: isDark ? AppColors.neutral900 : AppColors.neutral100,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: AppColors.neutral500, size: 16),
+          child: Icon(
+            icon,
+            color: isDark ? AppColors.neutral400 : AppColors.neutral500,
+            size: 16,
+          ),
         ),
         SizedBox(width: 10),
         Text(
