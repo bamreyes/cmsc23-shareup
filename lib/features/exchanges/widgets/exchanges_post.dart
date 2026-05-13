@@ -68,7 +68,7 @@ class _ExchangesPostState extends State<ExchangesPost> {
             title: 'Best Before',
             detail: DateFormatter.formatDate(widget.post.expirationDate),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 10),
           _buildDetails(
             icon: Icons.location_pin,
             title: 'Location',
@@ -94,6 +94,7 @@ class _ExchangesPostState extends State<ExchangesPost> {
         widget.post.id ?? '',
       );
       final request = exchangeProvider.getRequestForPost(widget.post.id ?? '');
+      final isDark = Theme.of(context).brightness == Brightness.dark;
 
       if (receiver == null) {
         return Padding(
@@ -106,13 +107,15 @@ class _ExchangesPostState extends State<ExchangesPost> {
         margin: EdgeInsets.symmetric(horizontal: 8),
         padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.warning50,
+          color: isDark
+              ? AppColors.warning500.withValues(alpha: 0.15)
+              : AppColors.warning50,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 21,
+              radius: 22,
               backgroundColor: AppColors.warning500,
               child: CircleAvatar(
                 radius: 20,
@@ -129,13 +132,13 @@ class _ExchangesPostState extends State<ExchangesPost> {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: AppColors.warning900,
+                    color: isDark ? AppColors.warning500 : AppColors.warning900,
                   ),
                 ),
                 if (request != null) ...[
                   SizedBox(height: 2),
                   Text(
-                    "Pickup at ${DateFormatter.formatDate(request.pickupDatetime)}",
+                    "Pickup at ${DateFormatter.formatDateTime(request.pickupDatetime)}",
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,

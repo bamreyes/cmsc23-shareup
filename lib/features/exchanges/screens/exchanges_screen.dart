@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/core/constants/colors.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
 import 'package:project/core/models/user_model.dart';
@@ -55,6 +56,19 @@ class _ExchangesScreenState extends State<ExchangesScreen> {
         appBar: AppHeader.title(
           title: 'Exchanges',
           bottom: TabBar(
+            indicatorColor: AppColors.primary500,
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorWeight: 3,
+            labelColor: AppColors.primary500,
+            unselectedLabelColor: AppColors.neutral500,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
             tabs: [
               Tab(text: "My Posts"),
               Tab(text: "My Requests"),
@@ -85,10 +99,12 @@ class _ExchangesScreenState extends State<ExchangesScreen> {
                 const Center(child: Text("You haven't posted anything yet.")),
               ],
             )
-          : ListView.builder(
+          : ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: posts.length,
+              separatorBuilder: (BuildContext context, int index) =>
+                  SizedBox(height: 12),
               itemBuilder: (context, index) {
                 return ExchangesPost(post: posts[index], user: currentUser!);
               },
@@ -115,10 +131,12 @@ class _ExchangesScreenState extends State<ExchangesScreen> {
                 ),
               ],
             )
-          : ListView.builder(
+          : ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: requests.length,
+              separatorBuilder: (BuildContext context, int index) =>
+                  SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final request = requests[index];
                 final details = exchangeProvider.requestDetails[request.postId];

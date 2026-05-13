@@ -32,7 +32,7 @@ class ItemHeader extends StatelessWidget {
         : AppColors.neutral800;
 
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border.all(color: borderColor),
@@ -59,6 +59,7 @@ class ItemHeader extends StatelessWidget {
                   displayName,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                     color: colorScheme.onSurface,
                   ),
                 ),
@@ -71,6 +72,7 @@ class ItemHeader extends StatelessWidget {
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: greyColor,
                         fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
                     if (distance != null) ...[
@@ -86,6 +88,7 @@ class ItemHeader extends StatelessWidget {
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: greyColor,
                           fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
                     ],

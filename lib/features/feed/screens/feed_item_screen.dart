@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project/core/models/request_model.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/widgets/headers/app_header.dart';
@@ -8,6 +9,8 @@ import 'package:project/features/feed/widgets/item_header.dart';
 import 'package:project/features/feed/widgets/item_image_section.dart';
 import 'package:project/core/constants/colors.dart';
 import 'package:project/core/utils/date_formatter.dart';
+import 'package:provider/provider.dart';
+import 'package:project/features/exchanges/providers/exchange_provider.dart';
 
 class FeedItemScreen extends StatelessWidget {
   final PostModel post;
@@ -43,7 +46,7 @@ class FeedItemScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ItemHeader(post: post, user: user, distance: distance),
-            SizedBox(height: 16),
+            SizedBox(height: 12),
             ItemImageSection(post: post),
             SizedBox(height: 24),
             Container(
@@ -123,31 +126,20 @@ class FeedItemScreen extends StatelessWidget {
   }
 
   Widget _buildBottomAction(BuildContext context, bool isReserved) {
-    final theme = Theme.of(context);
+    final exchangeProvider = context.watch<ExchangeProvider>();
+    final isAlreadyRequested = exchangeProvider.requests.any(
+      (request) =>
+          request.postId == post.id &&
+          (request.status == RequestStatus.pending ||
+              request.status == RequestStatus.accepted),
+    );
+
     if (isReserved) {
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.error50.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.error500.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.info_outline, color: AppColors.error500, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Item already reserved',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.error500,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
+      return PrimaryButton(text: 'Item Already Reserved', onPressed: null);
+    }
+
+    if (isAlreadyRequested) {
+      return PrimaryButton(text: 'Item Already Requested', onPressed: null);
     }
 
     return PrimaryButton(

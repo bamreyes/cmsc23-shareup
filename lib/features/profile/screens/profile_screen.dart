@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:project/core/models/user_model.dart';
-import 'package:project/core/widgets/buttons/secondary_button.dart';
+import 'package:project/core/constants/colors.dart';
 import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/features/profile/widgets/dietary_preferences.dart';
 import 'package:project/features/profile/widgets/discovery_radius_slider.dart';
-import 'package:project/core/widgets/buttons/primary_button.dart';
+import 'package:project/features/profile/widgets/notification_settings.dart';
+import 'package:project/core/models/notification_preferences.dart';
 import 'package:project/features/profile/widgets/theme_preferences.dart';
+import 'package:project/features/profile/widgets/profile_header.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
 
@@ -18,10 +20,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  List<String>? _tempTags;
-  double? _tempRadius;
-  AppMode? _tempMode;
-  bool _isSaving = false;
+  void _saveField({
+    List<String>? dietaryTags,
+    double? discoveryRadius,
+    AppMode? appMode,
+    NotificationPreferences? notificationPreferences,
+  }) {
+    context.read<ProfileProvider>().updateProfile(
+      dietaryTags: dietaryTags,
+      discoveryRadius: discoveryRadius,
+      appMode: appMode,
+      notificationPreferences: notificationPreferences,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,71 +42,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppHeader.title(title: 'Profile'),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(24.0),
+        physics: ClampingScrollPhysics(),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 16),
+            ProfileHeader(user: user),
+            SizedBox(height: 24),
+            DiscoveryRadiusSlider(
+              initialRadius: user?.discoveryRadius,
+              onChangeEnd: (radius) {
+                _saveField(discoveryRadius: radius);
+              },
+            ),
+            SizedBox(height: 12),
             DietaryPreferences(
               initialTags: user?.dietaryTags,
               onChanged: (tags) {
-                setState(() {
-                  _tempTags = tags;
-                });
+                _saveField(dietaryTags: tags);
               },
             ),
-            SizedBox(height: 32),
-            DiscoveryRadiusSlider(
-              initialRadius: user?.discoveryRadius,
-              onChanged: (radius) {
-                setState(() {
-                  _tempRadius = radius;
-                });
-              },
-            ),
-            SizedBox(height: 32),
+            if (user != null) ...[
+              SizedBox(height: 12),
+              NotificationSettings(
+                notifications: user.notificationPreferences,
+                onChanged: (prefs) {
+                  _saveField(notificationPreferences: prefs);
+                },
+              ),
+            ],
+            SizedBox(height: 12),
             ThemePreferences(
               onChanged: (mode) {
-                setState(() {
-                  _tempMode = mode;
-                });
+                _saveField(appMode: mode);
               },
             ),
-            SizedBox(height: 64),
-            PrimaryButton(
-              text: 'Save Profile',
-              isLoading: _isSaving,
-              onPressed: () async {
-                setState(() {
-                  _isSaving = true;
-                });
 
-                await profile.updateProfile(
-                  dietaryTags: _tempTags,
-                  discoveryRadius: _tempRadius,
-                  appMode: _tempMode,
-                );
-
-                if (mounted) {
-                  setState(() {
-                    _isSaving = false;
-                  });
-                  // ignore: use_build_context_synchronously
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Profile updated successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-            SecondaryButton(
-              text: 'Log Out',
-              onPressed: () {
-                final authProvider = context.read<AuthProvider>();
-                authProvider.logOut();
-              },
+            SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  final authProvider = context.read<AuthProvider>();
+                  authProvider.logOut();
+                },
+                icon: Icon(
+                  Icons.logout_rounded,
+                  size: 20,
+                  color: AppColors.error500,
+                ),
+                label: Text(
+                  'Log Out',
+                  style: TextStyle(
+                    color: AppColors.error500,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ),
           ],
         ),

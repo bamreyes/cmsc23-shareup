@@ -76,8 +76,8 @@ class ExchangesBaseCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              user.username,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              "@${user.username}",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             Row(
               children: [
@@ -85,10 +85,7 @@ class ExchangesBaseCard extends StatelessWidget {
                 SizedBox(width: 4),
                 Text(
                   timeAgo(createdAt),
-                  style: TextStyle(
-                    color: AppColors.neutral400,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(color: AppColors.neutral400, fontSize: 14),
                 ),
               ],
             ),
@@ -113,8 +110,8 @@ class ExchangesBaseCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
               post.image,
-              width: 120,
-              height: 120,
+              width: 140,
+              height: 140,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 width: 120,
@@ -141,12 +138,12 @@ class ExchangesBaseCard extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: post.dietaryTags
+                  spacing: 4,
+                  runSpacing: 6,
+                    children: post.dietaryTags
                       .map((tag) => Tag(label: tag))
-                      .toList(),
-                ),
+                        .toList(),
+                  ),
               ],
             ),
           ),

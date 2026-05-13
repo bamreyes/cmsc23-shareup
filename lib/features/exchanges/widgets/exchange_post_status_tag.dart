@@ -9,29 +9,38 @@ class ExchangePostStatusTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color backgroundColor;
     Color accentColor;
     String label;
 
     switch (status) {
       case PostStatus.reserved:
-        backgroundColor = AppColors.warning50;
         accentColor = AppColors.statusReserved;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.warning50;
         label = 'Reserved';
         break;
       case PostStatus.available:
-        backgroundColor = AppColors.success50;
         accentColor = AppColors.statusActive;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.success50;
         label = 'Available';
         break;
       case PostStatus.completed:
-        backgroundColor = const Color(0xFFEFF6FF);
         accentColor = AppColors.statusDone;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : const Color(0xFFEFF6FF);
         label = 'Completed';
         break;
       case PostStatus.deleted:
-        backgroundColor = AppColors.error50;
         accentColor = AppColors.statusExpired;
+        backgroundColor = isDark
+            ? accentColor.withValues(alpha: 0.15)
+            : AppColors.error50;
         label = 'Expired';
         break;
     }

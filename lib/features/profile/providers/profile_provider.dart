@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/core/models/user_model.dart';
+import 'package:project/core/models/notification_preferences.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/services/user_service.dart';
 
@@ -60,6 +61,7 @@ class ProfileProvider extends ChangeNotifier {
     List<String>? dietaryTags,
     double? discoveryRadius,
     AppMode? appMode,
+    NotificationPreferences? notificationPreferences,
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -68,6 +70,9 @@ class ProfileProvider extends ChangeNotifier {
     if (dietaryTags != null) data['dietaryTags'] = dietaryTags;
     if (discoveryRadius != null) data['discoveryRadius'] = discoveryRadius;
     if (appMode != null) data['appMode'] = appMode.name;
+    if (notificationPreferences != null) {
+      data['notificationPreferences'] = notificationPreferences.toMap();
+    }
 
     if (data.isEmpty) return;
 
@@ -78,6 +83,7 @@ class ProfileProvider extends ChangeNotifier {
           dietaryTags: dietaryTags,
           discoveryRadius: discoveryRadius,
           appMode: appMode,
+          notificationPreferences: notificationPreferences,
         );
         notifyListeners();
       }
