@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project/core/constants/colors.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
@@ -45,12 +46,31 @@ class _ExchangesScreenState extends State<ExchangesScreen> {
       child: Scaffold(
         floatingActionButton: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            FloatingActionButton(
-              onPressed: () {},
-              child: Icon(Icons.qr_code_scanner),
+            FloatingActionButton.small(
+              heroTag: 'scan_qr_fab',
+              onPressed: () => context.push('/scan-qr'),
+              backgroundColor: AppColors.primary300,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.qr_code_scanner_rounded, size: 20),
             ),
-            FloatingActionButton(onPressed: () {}, child: Icon(Icons.add)),
+            const SizedBox(height: 12),
+            FloatingActionButton(
+              heroTag: 'add_item_fab',
+              onPressed: () => context.push('/add-item'),
+              backgroundColor: AppColors.primary500,
+              foregroundColor: Colors.white,
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.add_rounded, size: 32),
+            ),
           ],
         ),
         appBar: AppHeader.title(

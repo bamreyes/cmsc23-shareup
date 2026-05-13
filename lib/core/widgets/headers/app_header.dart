@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
+import 'package:go_router/go_router.dart';
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
@@ -104,6 +105,16 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
         SizedBox(width: 16),
       ],
       bottom: bottom,
+    );
+  }
+
+  factory AppHeader.titleOnly({required String title}) {
+    return AppHeader(
+      centerTitle: true,
+      title: Text(
+        title,
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -212,7 +223,14 @@ class _CircleIconButton extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurface,
             size: 24,
           ),
-          onPressed: onPressed ?? () => Navigator.maybePop(context),
+          onPressed: onPressed ??
+              () {
+                if (icon == Icons.notifications_none_outlined) {
+                  context.push('/notifications');
+                } else {
+                  context.pop();
+                }
+              },
         ),
       ),
     );

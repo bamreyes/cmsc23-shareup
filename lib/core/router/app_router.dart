@@ -15,6 +15,9 @@ import 'package:project/core/models/request_model.dart';
 import 'package:project/features/profile/screens/profile_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/core/widgets/navigation/main_navigation_shell.dart';
+import 'package:project/features/notifications/screens/notification_screen.dart';
+import 'package:project/features/exchanges/screens/add_item_screen.dart';
+import 'package:project/features/exchanges/screens/scan_qr_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: "root");
 
@@ -40,6 +43,18 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(path: '/signup', builder: (context, state) => const SignUpScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationScreen(),
+    ),
+    GoRoute(
+      path: '/add-item',
+      builder: (context, state) => const AddItem(),
+    ),
+    GoRoute(
+      path: '/scan-qr',
+      builder: (context, state) => const ScanScreen(),
+    ),
     GoRoute(
       path: '/item-details',
       builder: (context, state) {
@@ -80,7 +95,11 @@ final appRouter = GoRouter(
         final request = extra['request'] as RequestModel;
         final post = extra['post'] as PostModel;
         final postOwner = extra['postOwner'] as UserModel;
-        return RequestDetailsScreen(request: request, post: post, postOwner: postOwner);
+        return RequestDetailsScreen(
+          request: request,
+          post: post,
+          postOwner: postOwner,
+        );
       },
     ),
     StatefulShellRoute.indexedStack(
