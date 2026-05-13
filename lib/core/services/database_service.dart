@@ -128,8 +128,23 @@ class DatabaseService {
   }
 
   //for creating request
-  Future<Result<bool>> createRequest(RequestModel request) async {
+  Future<Result<RequestModel>> createRequest(RequestModel request) async {
     try {
+      // First check if user already has an ACTIVE request for this post
+      final existingReq = await _firestore
+          .collection('requests')
+          .where('postId', isEqualTo: request.postId)
+          .where('requesterId', isEqualTo: request.requesterId)
+          .where('status', whereIn: [
+            RequestStatus.pending.name,
+            RequestStatus.accepted.name,
+          ])
+          .get();
+      
+      if (existingReq.docs.isNotEmpty) {
+        return Result.error("You have already requested this item");
+      }
+
       return await _firestore.runTransaction((transaction) async {
         final postRef = _firestore.collection('posts').doc(request.postId);
         final postDoc = await transaction.get(postRef);
@@ -148,12 +163,17 @@ class DatabaseService {
         final requestRef = _firestore.collection('requests').doc();
         transaction.set(requestRef, request.toJson());
 
-        transaction.update(postRef, {
-          'status': PostStatus.reserved.name,
-          'receiverId': request.requesterId,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        return Result.success(true);
+        final createdRequest = RequestModel(
+          id: requestRef.id,
+          postId: request.postId,
+          requesterId: request.requesterId,
+          pickupDatetime: request.pickupDatetime,
+          message: request.message,
+          status: request.status,
+          createdAt: request.createdAt,
+        );
+
+        return Result.success(createdRequest);
       });
     } catch (e) {
       return Result.error(e.toString());
@@ -167,10 +187,47 @@ class DatabaseService {
           .where('requesterId', isEqualTo: userId)
           .orderBy('createdAt', descending: true)
           .get();
-      final posts = snapshot.docs
+      final requests = snapshot.docs
           .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
           .toList();
-      return Result.success(posts);
+      return Result.success(requests);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<bool>> cancelRequest(String requestId, String postId) async {
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        final requestRef = _firestore.collection('requests').doc(requestId);
+        final postRef = _firestore.collection('posts').doc(postId);
+
+        final requestDoc = await transaction.get(requestRef);
+        final postDoc = await transaction.get(postRef);
+
+        if (!requestDoc.exists || !postDoc.exists) {
+          return Result.error("Request or Post not found");
+        }
+
+        final requesterId = requestDoc.data()?['requesterId'];
+        final receiverIdOnPost = postDoc.data()?['receiverId'];
+
+        transaction.update(requestRef, {
+          'status': RequestStatus.cancelled.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (postDoc.data()?['status'] == PostStatus.reserved.name &&
+            receiverIdOnPost == requesterId) {
+          transaction.update(postRef, {
+            'status': PostStatus.available.name,
+            'receiverId': null,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        return Result.success(true);
+      });
     } catch (e) {
       return Result.error(e.toString());
     }

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum RequestStatus { pending, accepted, rejected, cancelled, completed }
 
 class RequestModel {
+  final String? id;
   final String postId;
   final String requesterId;
   final DateTime pickupDatetime;
@@ -11,6 +12,7 @@ class RequestModel {
   final DateTime createdAt;
 
   RequestModel({
+    this.id,
     required this.postId,
     required this.requesterId,
     required this.pickupDatetime,
@@ -32,6 +34,7 @@ class RequestModel {
 
   factory RequestModel.fromJson(Map<String, dynamic> data, String docId) {
     return RequestModel(
+      id: docId,
       postId: data['postId'],
       requesterId: data['requesterId'],
       pickupDatetime: ((data['pickupDatetime'] ?? data['pickupDateTime'] ?? Timestamp.now()) as Timestamp)
