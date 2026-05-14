@@ -4,6 +4,7 @@ import 'package:project/core/models/user_model.dart';
 import 'package:project/core/models/notification_preferences.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/services/user_service.dart';
+import 'package:project/core/utils/result.dart';
 
 import 'package:project/core/services/database_service.dart';
 
@@ -28,15 +29,17 @@ class ProfileProvider extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   String? get userId => FirebaseAuth.instance.currentUser?.uid;
 
-  Future<void> loadCurrentUser() async {
+  Future<Result<UserModel?>> loadCurrentUser() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) return Result.error("No user logged in");
 
     final result = await _databaseService.getUserById(uid);
     if (result.isSuccess) {
       _currentUser = result.data;
       notifyListeners();
+      return Result.success(_currentUser);
     }
+    return Result.error(result.error ?? "Failed to load user");
   }
 
   Future<void> updateLocation() async {

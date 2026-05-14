@@ -3,13 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:project/features/auth/widgets/step_account_details.dart';
 import 'package:project/features/auth/widgets/step_user_preferences.dart';
 import 'package:project/features/auth/widgets/step_verification_photo.dart';
+import 'package:project/features/auth/widgets/loading_step.dart';
 import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/widgets/buttons/secondary_button.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:project/core/theme/extensions/smooth_page_indicator_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
-import 'package:project/features/profile/providers/profile_provider.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -69,58 +69,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!_isValidForm()) return;
 
     setState(() => _isLoading = true);
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        3,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+
     final authProvider = context.read<AuthProvider>();
     final result = await authProvider.signUp();
 
     if (mounted) {
-      setState(() => _isLoading = false);
       if (result != null && result.isSuccess) {
-        await context.read<ProfileProvider>().loadCurrentUser();
-        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Account created!"),
             backgroundColor: Colors.green,
           ),
         );
-      } else if (result != null && result.isError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.error ?? "Sign up failed"),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+      } else {
+        setState(() => _isLoading = false);
+        if (_pageController.hasClients) {
+          _pageController.animateToPage(
+            2,
+            duration: Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+        if (result != null && result.isError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.error ?? "Sign up failed"),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       }
     }
-  }
-
-  Widget _buildButton() {
-    final bool isLastPage = _page == (pages - 1);
-
-    if (_page == 0) {
-      return PrimaryButton(text: "Next", onPressed: _nextPage);
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          child: SecondaryButton(
-            text: "Back",
-            onPressed: _isLoading ? null : _previousPage,
-          ),
-        ),
-        SizedBox(width: 16),
-        Expanded(
-          child: PrimaryButton(
-            text: isLastPage ? "Submit" : "Next",
-            isLoading: isLastPage ? _isLoading : false,
-            onPressed: _isLoading
-                ? null
-                : (isLastPage ? _handleSignUp : _nextPage),
-          ),
-        ),
-      ],
-    );
   }
 
   @override
@@ -151,13 +137,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SizedBox(height: 32),
-                SmoothPageIndicator(
-                  controller: _pageController,
-                  count: pages,
-                  effect: indicatorTheme?.expandingDotsEffect ?? WormEffect(),
-                  onDotClicked: (index) {},
-                ),
-                SizedBox(height: 24),
+                if (!_isLoading) ...[
+                  SmoothPageIndicator(
+                    controller: _pageController,
+                    count: pages,
+                    effect: indicatorTheme?.expandingDotsEffect ?? WormEffect(),
+                    onDotClicked: (index) {},
+                  ),
+                  SizedBox(height: 24),
+                ],
                 Expanded(
                   child: Form(
                     key: _formKey,
@@ -168,6 +156,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         AccountDetails(formKey: _formKey),
                         UserPreferences(),
                         VerificationPhoto(),
+                        const LoadingStep(),
                       ],
                       onPageChanged: (index) => setState(() {
                         _page = index;
@@ -175,23 +164,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 24),
-                _buildButton(),
-                SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Already have an account? "),
-                    TextButton(
-                      child: Text("Log in"),
-                      onPressed: () {
-                        final authProvider = context.read<AuthProvider>();
-                        authProvider.clearProvider();
-                        context.go('/login');
-                      },
-                    ),
-                  ],
-                ),
+                _buildSignUpFooter(),
               ],
             ),
           ),
@@ -199,4 +172,60 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
+
+
+  Widget _buildSignUpFooter() {
+    if (_isLoading) return const SizedBox(height: 24);
+
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        _buildButton(),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("Already have an account? "),
+            TextButton(
+              child: const Text("Log in"),
+              onPressed: () {
+                context.read<AuthProvider>().clearProvider();
+                context.go('/login');
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildButton() {
+    final bool isLastPage = _page == (pages - 1);
+
+    if (_page == 0) {
+      return PrimaryButton(text: "Next", onPressed: _nextPage);
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: SecondaryButton(
+            text: "Back",
+            onPressed: _isLoading ? null : _previousPage,
+          ),
+        ),
+        SizedBox(width: 16),
+        Expanded(
+          child: PrimaryButton(
+            text: isLastPage ? "Submit" : "Next",
+            isLoading: false,
+            onPressed: _isLoading
+                ? null
+                : (isLastPage ? _handleSignUp : _nextPage),
+          ),
+        ),
+      ],
+    );
+  }
+
 }

@@ -7,6 +7,7 @@ import 'package:project/core/services/cloudinary_service.dart';
 import 'package:project/core/services/user_service.dart';
 import 'package:project/core/models/notification_preferences.dart';
 import 'package:project/core/utils/result.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final CloudinaryService _cloudinary = CloudinaryService();
@@ -101,37 +102,53 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<Result<dynamic>?> signUp() async {
-    final signUpResult = await _auth.signUp(_email!, _password!);
+    try {
+      final signUpResult = await _auth.signUp(_email!, _password!);
 
-    if (signUpResult.isError) {
-      return signUpResult;
+      if (signUpResult.isError) {
+        return signUpResult;
+      }
+
+      Result<String> cloudinaryResult = await _cloudinary.uploadFile(
+        _imageFile!,
+      );
+      if (cloudinaryResult.isError) {
+        await _auth.deleteUser();
+        return cloudinaryResult;
+      }
+
+      final imageUrl = cloudinaryResult.data;
+      final uid = signUpResult.data!.uid;
+
+      UserModel user = UserModel(
+        uid: uid,
+        firstName: _firstName!,
+        lastName: _lastName!,
+        email: _email!,
+        username: _username!,
+        profileImage: imageUrl!,
+        dietaryTags: _dietaryTags,
+        discoveryRadius: 20,
+        createdAt: DateTime.now(),
+        notificationPreferences: _notificationPreferences,
+      );
+      final addResult = await _user.addUser(user);
+      if (addResult.isError) {
+        await _auth.deleteUser();
+        return addResult;
+      }
+      final loaded = await profileProvider.loadCurrentUser();
+      if (loaded.isError) {
+        await _auth.deleteUser();
+        return Result.error("Failed to load user profile after registration");
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      return Result.success("Successfully signed up the user");
+    } catch (e) {
+      await _auth.deleteUser();
+      return Result.error(e.toString());
     }
-
-    Result<String> cloudinaryResult = await _cloudinary.uploadFile(_imageFile!);
-    if (cloudinaryResult.isError) {
-      return cloudinaryResult;
-    }
-
-    final imageUrl = cloudinaryResult.data;
-    final uid = signUpResult.data!.uid;
-
-    UserModel user = UserModel(
-      uid: uid,
-      firstName: _firstName!,
-      lastName: _lastName!,
-      email: _email!,
-      username: _username!,
-      profileImage: imageUrl!,
-      dietaryTags: _dietaryTags,
-      discoveryRadius: 0,
-      createdAt: DateTime.now(),
-      notificationPreferences: _notificationPreferences,
-    );
-    final addResult = await _user.addUser(user);
-    if (addResult.isError) {
-      return addResult;
-    }
-    return Result.success("Successfully signed up the user");
   }
 
   Future<Result<User?>> signIn({

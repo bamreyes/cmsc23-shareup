@@ -52,7 +52,18 @@ class AuthService {
   Future<Result<String?>> logOut() async {
     try {
       await _auth.signOut();
-      return Result.success('User successfully loggeed out');
+      return Result.success('User successfully logged out');
+    } on FirebaseAuthException catch (e) {
+      return Result.error(e.message);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<void>> deleteUser() async {
+    try {
+      await _auth.currentUser?.delete();
+      return Result.success(null);
     } on FirebaseAuthException catch (e) {
       return Result.error(e.message);
     } catch (e) {
