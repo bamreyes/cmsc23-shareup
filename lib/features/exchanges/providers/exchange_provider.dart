@@ -3,6 +3,7 @@ import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/database_service.dart';
+import 'package:project/core/utils/result.dart';
 
 class ExchangeProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
@@ -24,6 +25,7 @@ class ExchangeProvider extends ChangeNotifier {
   UserModel? getReceiverForPost(String postId) => _postReceivers[postId];
 
   bool get isLoading => _isLoading;
+
 
   Future<void> fetchMyPosts(String userId) async {
     _isLoading = true;
@@ -48,8 +50,8 @@ class ExchangeProvider extends ChangeNotifier {
 
       final futures = _requests.map((request) async {
         if (!_requestDetails.containsKey(request.postId)) {
-          final detailsResult = await _databaseService
-              .getRequestDetailsByPostId(request.postId);
+          final detailsResult =
+              await _databaseService.getRequestDetailsByPostId(request.postId);
           if (detailsResult.isSuccess && detailsResult.data != null) {
             _requestDetails[request.postId] = detailsResult.data!;
           }
@@ -70,14 +72,14 @@ class ExchangeProvider extends ChangeNotifier {
     if (_postReceivers.containsKey(post.id)) return;
 
     bool fetchedUser = false;
-    final requestResult = await _databaseService.getRequestByPostId(post.id!);
+    final requestResult =
+        await _databaseService.getRequestByPostId(post.id!);
     if (requestResult.isSuccess && requestResult.data != null) {
       final request = requestResult.data!;
       _postRequests[post.id!] = request;
 
-      final userResult = await _databaseService.getUserById(
-        request.requesterId,
-      );
+      final userResult =
+          await _databaseService.getUserById(request.requesterId);
       if (userResult.isSuccess && userResult.data != null) {
         _postReceivers[post.id!] = userResult.data!;
         fetchedUser = true;
@@ -85,7 +87,8 @@ class ExchangeProvider extends ChangeNotifier {
     }
 
     if (!fetchedUser && post.receiverId != null) {
-      final userResult = await _databaseService.getUserById(post.receiverId!);
+      final userResult =
+          await _databaseService.getUserById(post.receiverId!);
       if (userResult.isSuccess && userResult.data != null) {
         _postReceivers[post.id!] = userResult.data!;
       }
@@ -93,6 +96,20 @@ class ExchangeProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+
+
+  /// Creates a new post in Firestore 
+  Future<Result<bool>> createPost(PostModel post) async {
+    final result = await _databaseService.createPost(post);
+
+    if (result.isSuccess) {
+      _posts.insert(0, post);
+      notifyListeners();
+    }
+
+    return result;
+  }
+
 
   Future<dynamic> createRequest(RequestModel request) async {
     final result = await _databaseService.createRequest(request);
@@ -112,10 +129,10 @@ class ExchangeProvider extends ChangeNotifier {
     final result = await _databaseService.cancelRequest(requestId, postId);
 
     if (result.isSuccess) {
-      final index = _requests.indexWhere((request) => request.id == requestId);
+      final index =
+          _requests.indexWhere((request) => request.id == requestId);
       if (index != -1) {
         final oldReq = _requests[index];
-        // change to cancelled
         _requests[index] = RequestModel(
           id: oldReq.id,
           postId: oldReq.postId,
@@ -130,6 +147,45 @@ class ExchangeProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+    return result;
+  }
+
+
+  Future<Result<String>> completePostByQr({
+    required String postId,
+    required String scannerId,
+  }) async {
+    final result = await _databaseService.completePostByQr(
+      postId: postId,
+      scannerId: scannerId,
+    );
+
+    if (result.isSuccess) {
+      // Update local posts list
+      final idx = _posts.indexWhere((p) => p.id == postId);
+      if (idx != -1) {
+        final old = _posts[idx];
+        _posts[idx] = PostModel(
+          id: old.id,
+          userId: old.userId,
+          name: old.name,
+          description: old.description,
+          image: old.image,
+          expirationDate: old.expirationDate,
+          dietaryTags: old.dietaryTags,
+          latitude: old.latitude,
+          longitude: old.longitude,
+          locationName: old.locationName,
+          status: PostStatus.completed,
+          receiverId: old.receiverId,
+          qrCode: old.qrCode,
+          createdAt: old.createdAt,
+          updatedAt: DateTime.now(),
+        );
+      }
+      notifyListeners();
+    }
+
     return result;
   }
 }
