@@ -29,12 +29,11 @@ class ExchangesBaseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final borderColor = theme.brightness == Brightness.light
-        ? AppColors.neutral200
-        : AppColors.neutral800;
-    final dividerColor = theme.brightness == Brightness.light
-        ? AppColors.neutral100
-        : AppColors.neutral800;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final cardBgColor = isDark ? AppColors.neutral900 : colorScheme.surface;
+    final borderColor = isDark ? AppColors.neutral800 : AppColors.neutral200;
+    final dividerColor = isDark ? AppColors.neutral800 : AppColors.neutral100;
 
     return Material(
       color: Colors.transparent,
@@ -44,7 +43,7 @@ class ExchangesBaseCard extends StatelessWidget {
         child: Ink(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
-            color: colorScheme.surface,
+            color: cardBgColor,
             border: Border.all(color: borderColor),
             borderRadius: BorderRadius.circular(16),
           ),

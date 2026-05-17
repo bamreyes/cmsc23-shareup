@@ -229,14 +229,14 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   }
 
   Widget _buildScheduleCard(ThemeData theme, ColorScheme colorScheme) {
-    final borderColor = theme.brightness == Brightness.light
-        ? AppColors.grey200
-        : AppColors.neutral800;
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBgColor = isDark ? AppColors.neutral900 : colorScheme.surface;
+    final borderColor = isDark ? AppColors.neutral800 : AppColors.grey200;
 
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: cardBgColor,
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -329,14 +329,14 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
   }
 
   Widget _buildMessageCard(ThemeData theme, ColorScheme colorScheme) {
-    final borderColor = theme.brightness == Brightness.light
-        ? AppColors.grey200
-        : AppColors.neutral800;
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBgColor = isDark ? AppColors.neutral900 : colorScheme.surface;
+    final borderColor = isDark ? AppColors.neutral800 : AppColors.grey200;
 
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: cardBgColor,
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(16),
       ),

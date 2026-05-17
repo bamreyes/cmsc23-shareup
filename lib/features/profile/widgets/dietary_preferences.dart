@@ -62,9 +62,10 @@ class _DietaryPreferencesState extends State<DietaryPreferences> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final borderColor = theme.brightness == Brightness.light
-        ? AppColors.grey200
-        : AppColors.neutral800;
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final cardBgColor = isDark ? AppColors.neutral900 : colorScheme.surface;
+    final borderColor = isDark ? AppColors.neutral800 : AppColors.grey200;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -76,7 +77,7 @@ class _DietaryPreferencesState extends State<DietaryPreferences> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           decoration: BoxDecoration(
-            color: colorScheme.surface,
+            color: cardBgColor,
             border: Border.all(color: borderColor),
             borderRadius: BorderRadius.circular(16),
           ),

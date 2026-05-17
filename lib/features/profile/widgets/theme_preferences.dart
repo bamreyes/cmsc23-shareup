@@ -29,9 +29,10 @@ class _ThemePreferencesState extends State<ThemePreferences> {
     final displayMode = _localMode ?? providerMode;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final borderColor = theme.brightness == Brightness.light
-        ? AppColors.grey200
-        : AppColors.neutral800;
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final cardBgColor = isDark ? AppColors.neutral900 : colorScheme.surface;
+    final borderColor = isDark ? AppColors.neutral800 : AppColors.grey200;
 
     IconData getIcon(AppMode mode) {
       switch (mode) {
@@ -55,7 +56,7 @@ class _ThemePreferencesState extends State<ThemePreferences> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: colorScheme.surface,
+            color: cardBgColor,
             border: Border.all(color: borderColor),
             borderRadius: BorderRadius.circular(16),
           ),
