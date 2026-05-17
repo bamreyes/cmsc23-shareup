@@ -22,7 +22,7 @@ class DatabaseService {
     Map<String, dynamic> updates,
   ) async {
     try {
-      updates['updated_at'] = FieldValue.serverTimestamp();
+      updates['updatedAt'] = FieldValue.serverTimestamp();
       await _firestore.collection('posts').doc(postId).update(updates);
       return Result.success(true);
     } catch (e) {
@@ -58,8 +58,7 @@ class DatabaseService {
     }
   }
 
-  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(
-      String postId) async {
+  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(String postId) async {
     try {
       final postResult = await getPostById(postId);
       if (postResult.isSuccess && postResult.data != null) {
@@ -100,8 +99,7 @@ class DatabaseService {
   }
 
   /// Gets the accepted request for a post 
-  Future<Result<RequestModel>> getAcceptedRequestByPostId(
-      String postId) async {
+  Future<Result<RequestModel>> getAcceptedRequestByPostId(String postId) async {
     try {
       final snapshot = await _firestore
           .collection('requests')
@@ -123,8 +121,7 @@ class DatabaseService {
   }
 
   /// Gets all requests for a post 
-  Future<Result<List<RequestModel>>> getRequestsForPost(
-      String postId) async {
+  Future<Result<List<RequestModel>>> getRequestsForPost(String postId) async {
     try {
       final snapshot = await _firestore
           .collection('requests')
@@ -315,9 +312,75 @@ class DatabaseService {
       return Result.error(e.toString());
     }
   }
+  
+  Future<Result<bool>> acceptRequest(String requestId, String postId) async {
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        final requestRef = _firestore.collection('requests').doc(requestId);
+        final postRef = _firestore.collection('posts').doc(postId);
 
+        final otherRequestsQuery = await _firestore
+            .collection('requests')
+            .where('postId', isEqualTo: postId)
+            .where('status', isEqualTo: RequestStatus.pending.name)
+            .get();
 
-  /// Called when the poster scans the receiver's QR code.
+        final requestDoc = await transaction.get(requestRef);
+        final postDoc = await transaction.get(postRef);
+
+        if (!requestDoc.exists || !postDoc.exists) {
+          return Result.error("Request or Post not found");
+        }
+
+        final currentPostStatus = postDoc.data()?['status'];
+        if (currentPostStatus != PostStatus.available.name) {
+          return Result.error("This item is no longer available to accept");
+        }
+
+        final requesterId = requestDoc.data()?['requesterId'];
+
+        transaction.update(requestRef, {
+          'status': RequestStatus.accepted.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        transaction.update(postRef, {
+          'status': PostStatus.reserved.name,
+          'receiverId': requesterId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        for (var doc in otherRequestsQuery.docs) {
+          if (doc.id != requestId) {
+            transaction.update(doc.reference, {
+              'status': RequestStatus.rejected.name,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+        return Result.success(true);
+      });
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<bool>> rejectRequest(String requestId) async {
+    try {
+      final requestRef = _firestore.collection('requests').doc(requestId);
+      
+      await requestRef.update({
+        'status': RequestStatus.rejected.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return Result.success(true);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  // Called when the poster scans the receiver's QR code.
   Future<Result<String>> completePostByQr({
     required String postId,
     required String scannerId,
