@@ -11,6 +11,7 @@ import 'package:project/core/constants/colors.dart';
 import 'package:project/core/utils/date_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
+import 'package:project/core/widgets/display/rectangular_map.dart';
 
 class RequestDetailsScreen extends StatelessWidget {
   final RequestModel request;
@@ -57,6 +58,12 @@ class RequestDetailsScreen extends StatelessWidget {
               ),
               Divider(color: borderColor, height: 24),
               _buildDetailItem(theme, 'Pickup Location', post.locationName),
+              SizedBox(height: 12),
+              RectangularMap(
+                latitude: post.latitude,
+                longitude: post.longitude,
+                height: 200,
+              ),
               Divider(color: borderColor, height: 24),
               _buildDetailItem(
                 theme,
@@ -103,10 +110,15 @@ class RequestDetailsScreen extends StatelessWidget {
     Color borderColor,
     List<Widget> children,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBgColor = isDark
+        ? AppColors.neutral900
+        : theme.colorScheme.surface;
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: cardBgColor,
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(16),
       ),

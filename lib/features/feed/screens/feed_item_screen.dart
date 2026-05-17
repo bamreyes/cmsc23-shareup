@@ -11,6 +11,7 @@ import 'package:project/core/constants/colors.dart';
 import 'package:project/core/utils/date_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
+import 'package:project/core/widgets/display/rectangular_map.dart';
 
 class FeedItemScreen extends StatelessWidget {
   final PostModel post;
@@ -52,7 +53,9 @@ class FeedItemScreen extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.surface,
+                color: theme.brightness == Brightness.dark
+                    ? AppColors.neutral900
+                    : colorScheme.surface,
                 border: Border.all(color: borderColor),
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -74,7 +77,13 @@ class FeedItemScreen extends StatelessWidget {
                   _buildDetailItem(
                     theme,
                     'Pickup Location',
-                    '${post.locationName}\n${distance ?? "0.0 km"} away from you',
+                    '${post.locationName}\n${distance?.replaceAll(' away', '') ?? "0.0 km"} away from you',
+                  ),
+                  SizedBox(height: 12),
+                  RectangularMap(
+                    latitude: post.latitude,
+                    longitude: post.longitude,
+                    height: 200,
                   ),
                   Divider(color: borderColor, height: 24),
                   _buildDetailItem(
