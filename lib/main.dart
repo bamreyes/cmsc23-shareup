@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/features/feed/providers/feed_provider.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
+import 'package:project/features/home/providers/home_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,7 @@ void main() async {
         ChangeNotifierProvider.value(value: feedProvider),
         ChangeNotifierProvider.value(value: profileProvider),
         ChangeNotifierProvider(create: (_) => ExchangeProvider()),
+        ChangeNotifierProvider.value(value: homeProvider),
       ],
       child: const MyApp(),
     ),
