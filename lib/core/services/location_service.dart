@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:project/core/utils/result.dart';
 
 class LocationService {
@@ -40,5 +41,28 @@ class LocationService {
       endLongitude,
     );
     return Result.success(distanceInMeters / 1000);
+  }
+
+  Future<Result<String>> getAddressFromCoordinates(
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(latitude, longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        final parts = [
+          p.street,
+          p.subLocality,
+          p.locality,
+          p.administrativeArea,
+        ].where((s) => s != null && s.isNotEmpty).toList();
+        final name = parts.take(3).join(', ');
+        return Result.success(name);
+      }
+      return Result.error('Unknown Location');
+    } catch (e) {
+      return Result.error(e.toString());
+    }
   }
 }

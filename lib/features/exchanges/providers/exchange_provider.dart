@@ -1,12 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/database_service.dart';
+import 'package:project/core/services/location_service.dart';
+import 'package:project/core/services/media_service.dart';
 import 'package:project/core/utils/result.dart';
 
 class ExchangeProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
+  final LocationService _locationService = LocationService();
+  final MediaService _mediaService = MediaService();
 
   List<PostModel> _posts = [];
   List<RequestModel> _requests = [];
@@ -25,6 +31,37 @@ class ExchangeProvider extends ChangeNotifier {
   UserModel? getReceiverForPost(String postId) => _postReceivers[postId];
 
   bool get isLoading => _isLoading;
+
+  Future<Result<File>> pickImage(ImageSource source) async {
+    return await _mediaService.pickImage(source);
+  }
+
+  Future<Result<Map<String, dynamic>>> detectCurrentLocation() async {
+    final posResult = await _locationService.getCurrentLocation();
+    if (posResult.isError) {
+      return Result.error(posResult.error ?? 'Failed to get location');
+    }
+
+    final position = posResult.data!;
+    final addressResult = await _locationService.getAddressFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (addressResult.isError) {
+      return Result.success({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'address': 'Unknown Location',
+      });
+    }
+
+    return Result.success({
+      'latitude': position.latitude,
+      'longitude': position.longitude,
+      'address': addressResult.data!,
+    });
+  }
 
 
   Future<void> fetchMyPosts(String userId) async {
