@@ -27,14 +27,14 @@ class ItemHeader extends StatelessWidget {
         : AppColors.neutral300;
     final displayName = uploaderName ?? user?.username ?? 'User';
 
-    final borderColor = theme.brightness == Brightness.light
-        ? AppColors.grey200
-        : AppColors.neutral800;
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBgColor = isDark ? AppColors.neutral900 : colorScheme.surface;
+    final borderColor = isDark ? AppColors.neutral800 : AppColors.grey200;
 
     return Container(
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: cardBgColor,
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(16),
       ),

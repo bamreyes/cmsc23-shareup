@@ -12,6 +12,7 @@ import 'package:project/features/exchanges/screens/exchanges_screen.dart';
 import 'package:project/features/exchanges/screens/item_screen.dart';
 import 'package:project/features/exchanges/screens/request_details_screen.dart';
 import 'package:project/core/models/request_model.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
 import 'package:project/features/profile/screens/profile_screen.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/core/widgets/navigation/main_navigation_shell.dart';
@@ -24,9 +25,12 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: "root");
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/login',
-  refreshListenable: authProvider,
+  refreshListenable: Listenable.merge([authProvider, profileProvider]),
   redirect: (context, state) {
     final isLoggedIn = authProvider.isLoggedIn;
+    final hasProfile =
+        profileProvider.userId != null && profileProvider.currentUser != null;
+
     final isLoggingIn =
         state.matchedLocation == '/login' || state.matchedLocation == '/signup';
 
@@ -34,7 +38,7 @@ final appRouter = GoRouter(
       return '/login';
     }
 
-    if (isLoggedIn && isLoggingIn) {
+    if (isLoggedIn && isLoggingIn && hasProfile) {
       return '/';
     }
 
@@ -47,14 +51,8 @@ final appRouter = GoRouter(
       path: '/notifications',
       builder: (context, state) => const NotificationScreen(),
     ),
-    GoRoute(
-      path: '/add-item',
-      builder: (context, state) => const AddItem(),
-    ),
-    GoRoute(
-      path: '/scan-qr',
-      builder: (context, state) => const ScanScreen(),
-    ),
+    GoRoute(path: '/add-item', builder: (context, state) => const AddItem()),
+    GoRoute(path: '/scan-qr', builder: (context, state) => const ScanScreen()),
     GoRoute(
       path: '/item-details',
       builder: (context, state) {

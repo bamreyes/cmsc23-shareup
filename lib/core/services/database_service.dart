@@ -168,6 +168,21 @@ class DatabaseService {
     }
   }
 
+  Future<Result<List<PostModel>>> getCompletedPosts() async {
+    try {
+      final snapshot = await _firestore
+          .collection('posts')
+          .where('status', isEqualTo: PostStatus.completed.name)
+          .get();
+      final posts = snapshot.docs
+          .map((doc) => PostModel.fromJson(doc.data(), doc.id))
+          .toList();
+      return Result.success(posts);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
   Future<Result<UserModel>> getUserById(String userId) async {
     try {
       final doc = await _firestore.collection('users').doc(userId).get();
