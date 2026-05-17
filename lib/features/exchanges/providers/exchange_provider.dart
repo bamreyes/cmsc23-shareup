@@ -15,6 +15,9 @@ class ExchangeProvider extends ChangeNotifier {
   final Map<String, RequestModel> _postRequests = {};
   final Map<String, UserModel> _postReceivers = {};
 
+  final Map<String, List<RequestModel>> _inboundRequests = {};
+  final Map<String, UserModel> _cachedRequesters = {};
+
   bool _isLoading = false;
 
   List<PostModel> get posts => _posts;
@@ -23,6 +26,9 @@ class ExchangeProvider extends ChangeNotifier {
 
   RequestModel? getRequestForPost(String postId) => _postRequests[postId];
   UserModel? getReceiverForPost(String postId) => _postReceivers[postId];
+
+  List<RequestModel> getInboundRequestsForPost(String postId) => _inboundRequests[postId] ?? [];
+  UserModel? getCachedRequester(String userId) => _cachedRequesters[userId];
 
   bool get isLoading => _isLoading;
 
@@ -48,17 +54,12 @@ class ExchangeProvider extends ChangeNotifier {
     if (result.isSuccess) {
       _requests = result.data ?? [];
 
-      final futures = _requests.map((request) async {
-        if (!_requestDetails.containsKey(request.postId)) {
-          final detailsResult =
-              await _databaseService.getRequestDetailsByPostId(request.postId);
-          if (detailsResult.isSuccess && detailsResult.data != null) {
-            _requestDetails[request.postId] = detailsResult.data!;
-          }
+    for (var req in _requests) {
+        final detailsResult = await _databaseService.getRequestDetailsByPostId(req.postId);
+        if (detailsResult.isSuccess && detailsResult.data != null) {
+          _requestDetails[req.postId] = detailsResult.data!;
         }
-      });
-
-      await Future.wait(futures);
+      }
     }
 
     _isLoading = false;
@@ -150,6 +151,109 @@ class ExchangeProvider extends ChangeNotifier {
     return result;
   }
 
+  Future<void> fetchInboundRequestforPost(String postId) async {
+    _isLoading = true;
+    _inboundRequests.remove(postId);
+    notifyListeners();
+
+    final result = await _databaseService.getRequestsForPost(postId);
+    if (result.isSuccess) {
+      _inboundRequests[postId] = result.data ?? [];
+
+    for (var req in _inboundRequests[postId]!) {
+        if (!_cachedRequesters.containsKey(req.requesterId)) {
+          final userResult = await _databaseService.getUserById(req.requesterId);
+          if (userResult.isSuccess && userResult.data != null) {
+            _cachedRequesters[req.requesterId] = userResult.data!;
+          }
+        }
+      }
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<Result<bool>> acceptRequest(String requestId, String postId, String requesterId) async {
+    _isLoading = true;
+    notifyListeners();
+
+  final result = await _databaseService.acceptRequest(requestId, postId);
+
+  if (result.isSuccess) {
+      final postIndex = _posts.indexWhere((p) => p.id == postId);
+      if (postIndex != -1) {
+        final oldPost = _posts[postIndex];
+        _posts[postIndex] = PostModel(
+          id: oldPost.id,
+          userId: oldPost.userId,
+          name: oldPost.name,
+          description: oldPost.description,
+          image: oldPost.image,
+          expirationDate: oldPost.expirationDate,
+          dietaryTags: oldPost.dietaryTags,
+          latitude: oldPost.latitude,
+          longitude: oldPost.longitude,
+          locationName: oldPost.locationName,
+          status: PostStatus.reserved,
+          receiverId: requesterId,
+          qrCode: oldPost.qrCode,
+          createdAt: oldPost.createdAt,
+          updatedAt: DateTime.now(),
+        );
+      }
+
+      if (_inboundRequests.containsKey(postId)) {
+        _inboundRequests[postId] = _inboundRequests[postId]!.map((req) {
+          if (req.id == requestId) {
+            return RequestModel(
+              id: req.id,
+              postId: req.postId,
+              requesterId: req.requesterId,
+              pickupDatetime: req.pickupDatetime,
+              message: req.message,
+              status: RequestStatus.accepted,
+              createdAt: req.createdAt,
+            );
+          } else if (req.status == RequestStatus.pending) {
+            return RequestModel(
+              id: req.id,
+              postId: req.postId,
+              requesterId: req.requesterId,
+              pickupDatetime: req.pickupDatetime,
+              message: req.message,
+              status: RequestStatus.rejected,
+              createdAt: req.createdAt,
+            );
+          }
+          return req;
+        }).toList();
+      }
+
+      if (_cachedRequesters.containsKey(requesterId)) {
+        _postReceivers[postId] = _cachedRequesters[requesterId]!;
+      }
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
+
+    Future<dynamic> rejectRequest(String requestId, String postId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _databaseService.rejectRequest(requestId);
+
+    if (result.isSuccess) {
+      _inboundRequests[postId]?.removeWhere((req) => req.id == requestId);
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
 
   Future<Result<String>> completePostByQr({
     required String postId,
