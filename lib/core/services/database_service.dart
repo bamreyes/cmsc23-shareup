@@ -16,7 +16,7 @@ class DatabaseService {
     }
   }
 
-  /// Updates an existing post (Edit details)
+  /// Updates an existing post 
   Future<Result<bool>> updatePost(
     String postId,
     Map<String, dynamic> updates,
@@ -27,6 +27,20 @@ class DatabaseService {
       return Result.success(true);
     } catch (e) {
       print("Error updating post: $e");
+      return Result.error(e.toString());
+    }
+  }
+
+  /// Updates an existing request document
+  Future<Result<bool>> updateRequest(
+    String requestId,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      updates['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore.collection('requests').doc(requestId).update(updates);
+      return Result.success(true);
+    } catch (e) {
       return Result.error(e.toString());
     }
   }
@@ -44,7 +58,8 @@ class DatabaseService {
     }
   }
 
-  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(String postId) async {
+  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(
+      String postId) async {
     try {
       final postResult = await getPostById(postId);
       if (postResult.isSuccess && postResult.data != null) {
@@ -77,6 +92,46 @@ class DatabaseService {
             snapshot.docs.first.data(), snapshot.docs.first.id));
       }
       return Result.error("Request not found");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  /// Gets the accepted request for a post 
+  Future<Result<RequestModel>> getAcceptedRequestByPostId(
+      String postId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('requests')
+          .where('postId', isEqualTo: postId)
+          .where('status', isEqualTo: RequestStatus.accepted.name)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return Result.success(RequestModel.fromJson(
+            snapshot.docs.first.data(), snapshot.docs.first.id));
+      }
+      return Result.error("Accepted request not found");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  /// Gets all requests for a post 
+  Future<Result<List<RequestModel>>> getRequestsForPost(
+      String postId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('requests')
+          .where('postId', isEqualTo: postId)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final requests = snapshot.docs
+          .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
+          .toList();
+      return Result.success(requests);
     } catch (e) {
       return Result.error(e.toString());
     }
@@ -127,7 +182,7 @@ class DatabaseService {
     }
   }
 
-  //for creating request
+
   Future<Result<RequestModel>> createRequest(RequestModel request) async {
     try {
       // First check if user already has an ACTIVE request for this post
@@ -140,7 +195,7 @@ class DatabaseService {
             RequestStatus.accepted.name,
           ])
           .get();
-      
+
       if (existingReq.docs.isNotEmpty) {
         return Result.error("You have already requested this item");
       }
@@ -155,7 +210,6 @@ class DatabaseService {
 
         final currentStatus = postDoc.data()?['status'];
 
-        //checker for availability of item
         if (currentStatus != PostStatus.available.name) {
           return Result.error("Item already reserved!");
         }
@@ -227,6 +281,70 @@ class DatabaseService {
         }
 
         return Result.success(true);
+      });
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+
+  /// Called when the poster scans the receiver's QR code.
+  Future<Result<String>> completePostByQr({
+    required String postId,
+    required String scannerId,
+  }) async {
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        final postRef = _firestore.collection('posts').doc(postId);
+        final postDoc = await transaction.get(postRef);
+
+        if (!postDoc.exists) {
+          return Result.error("Post not found.");
+        }
+
+        final data = postDoc.data()!;
+        final postOwnerId = data['userId'] as String?;
+        final currentStatus = data['status'] as String?;
+
+        // Only the post owner can complete via QR
+        if (postOwnerId != scannerId) {
+          return Result.error(
+            "Only the item owner can complete this exchange.",
+          );
+        }
+
+        if (currentStatus == PostStatus.completed.name) {
+          return Result.error("This item has already been completed.");
+        }
+
+        if (currentStatus != PostStatus.reserved.name) {
+          return Result.error(
+            "This item is not currently reserved.",
+          );
+        }
+
+        // Find the accepted request so we can mark it completed too
+        final reqSnapshot = await _firestore
+            .collection('requests')
+            .where('postId', isEqualTo: postId)
+            .where('status', isEqualTo: RequestStatus.accepted.name)
+            .limit(1)
+            .get();
+
+        transaction.update(postRef, {
+          'status': PostStatus.completed.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (reqSnapshot.docs.isNotEmpty) {
+          final reqRef = reqSnapshot.docs.first.reference;
+          transaction.update(reqRef, {
+            'status': RequestStatus.completed.name,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        return Result.success("Exchange completed successfully!");
       });
     } catch (e) {
       return Result.error(e.toString());
