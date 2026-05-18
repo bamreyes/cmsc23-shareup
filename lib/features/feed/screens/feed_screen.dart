@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/core/widgets/common/loading_screen.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
 import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/features/feed/providers/feed_provider.dart';
@@ -72,7 +73,10 @@ class _FeedScreenState extends State<FeedScreen> {
           ); // sort based on distance
 
     if (feedProvider.isLoading && postsData.isEmpty) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const LoadingScreen(
+        title: 'Loading pantry',
+        subtitle: 'Finding nearby posts matching your preferences...',
+      );
     }
 
     return Scaffold(

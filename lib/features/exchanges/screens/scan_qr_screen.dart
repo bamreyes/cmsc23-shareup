@@ -162,9 +162,12 @@ class _ScanScreenState extends State<ScanScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       appBar: AppHeader.back(
         title: 'Scan QR Code',
         onBack: () => context.pop(),
+        backgroundColor: Colors.transparent,
+        textColor: Colors.white,
       ),
       body: Stack(
         children: [
@@ -209,7 +212,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Point the camera at the\nreceiver\'s Pickup Pass',
+                    'Point the camera at the\nowner\'s Pickup Pass',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.white,

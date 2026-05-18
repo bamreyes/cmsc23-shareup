@@ -13,6 +13,7 @@ import 'package:project/core/widgets/buttons/toggle_button.dart';
 import 'package:project/core/constants/dietary_tag_colors.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
+import 'package:project/core/widgets/common/loading_screen.dart';
 
 const List<String> _kDietaryTags = [
   'Vegan',
@@ -232,6 +233,13 @@ class _AddItemState extends State<AddItem> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isSubmitting) {
+      return const LoadingScreen(
+        title: 'Posting Item',
+        subtitle: 'Uploading image and saving item. Please wait...',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final borderColor = theme.brightness == Brightness.light

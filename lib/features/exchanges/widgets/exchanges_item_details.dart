@@ -540,7 +540,9 @@ class ItemDetailsState extends State<ItemDetails> {
             ),
             SizedBox(height: 40),
 
-            if (widget.post.status != PostStatus.deleted) ...[
+            if (widget.post.status != PostStatus.deleted &&
+                widget.post.status != PostStatus.reserved &&
+                widget.post.status != PostStatus.completed) ...[
               _buildDeleteButton(),
               SizedBox(height: 24),
             ],
@@ -717,26 +719,26 @@ class ItemDetailsState extends State<ItemDetails> {
       width: double.infinity,
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.danger),
+          side: BorderSide(color: AppColors.error500, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(24),
           ),
           padding: EdgeInsets.symmetric(vertical: 14),
-          foregroundColor: AppColors.danger,
+          foregroundColor: AppColors.error500,
         ),
         onPressed: _isDeleting ? null : _confirmDelete,
         child: _isDeleting
-            ? SizedBox(
+            ? const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
-                  color: AppColors.danger,
+                  color: AppColors.error500,
                   strokeWidth: 2,
                 ),
               )
-            : Text(
+            : const Text(
                 'Delete',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
       ),
     );

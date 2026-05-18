@@ -56,7 +56,7 @@ class ItemHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  displayName,
+                  "@$displayName",
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -65,30 +65,30 @@ class ItemHeader extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 14, color: greyColor),
-                    SizedBox(width: 4),
+                    Icon(Icons.access_time, size: 13, color: greyColor),
+                    SizedBox(width: 2),
                     Text(
                       timeAgo(post.createdAt),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: greyColor,
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 12,
                       ),
                     ),
                     if (distance != null) ...[
-                      SizedBox(width: 12),
+                      SizedBox(width: 6),
                       Icon(
                         Icons.location_on_outlined,
-                        size: 14,
+                        size: 12,
                         color: greyColor,
                       ),
-                      SizedBox(width: 4),
+                      SizedBox(width: 2),
                       Text(
                         distance!,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: greyColor,
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                       ),
                     ],

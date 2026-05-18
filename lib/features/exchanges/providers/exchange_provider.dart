@@ -152,9 +152,7 @@ class ExchangeProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final result = await _databaseService.updatePost(postId, {
-      'status': PostStatus.deleted.name,
-    });
+    final result = await _databaseService.deletePost(postId);
 
     if (result.isSuccess) {
       _posts.removeWhere((p) => p.id == postId);
@@ -264,7 +262,7 @@ class ExchangeProvider extends ChangeNotifier {
       if (_inboundRequests.containsKey(postId)) {
         _inboundRequests[postId] = _inboundRequests[postId]!.map((req) {
           if (req.id == requestId) {
-            return RequestModel(
+            final acceptedReq = RequestModel(
               id: req.id,
               postId: req.postId,
               requesterId: req.requesterId,
@@ -273,6 +271,8 @@ class ExchangeProvider extends ChangeNotifier {
               status: RequestStatus.accepted,
               createdAt: req.createdAt,
             );
+            _postRequests[postId] = acceptedReq;
+            return acceptedReq;
           } else if (req.status == RequestStatus.pending) {
             return RequestModel(
               id: req.id,
