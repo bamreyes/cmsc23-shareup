@@ -41,7 +41,7 @@ class ExchangesBaseCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Ink(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: cardBgColor,
             border: Border.all(color: borderColor),
@@ -80,11 +80,15 @@ class ExchangesBaseCard extends StatelessWidget {
             ),
             Row(
               children: [
-                Icon(Icons.access_time, size: 14, color: AppColors.neutral400),
-                SizedBox(width: 4),
+                Icon(Icons.access_time, size: 12, color: AppColors.neutral400),
+                SizedBox(width: 3),
                 Text(
                   timeAgo(createdAt),
-                  style: TextStyle(color: AppColors.neutral400, fontSize: 14),
+                  style: TextStyle(
+                    color: AppColors.neutral400,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -139,10 +143,10 @@ class ExchangesBaseCard extends StatelessWidget {
                 Wrap(
                   spacing: 4,
                   runSpacing: 6,
-                    children: post.dietaryTags
+                  children: post.dietaryTags
                       .map((tag) => Tag(label: tag))
-                        .toList(),
-                  ),
+                      .toList(),
+                ),
               ],
             ),
           ),

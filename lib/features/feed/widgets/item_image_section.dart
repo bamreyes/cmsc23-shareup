@@ -48,9 +48,9 @@ class ItemImageSection extends StatelessWidget {
                   color: colorScheme.onSurface,
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 6),
               Wrap(
-                spacing: 8,
+                spacing: 6,
                 runSpacing: 8,
                 children: post.dietaryTags
                     .map((tag) => Tag(label: tag))

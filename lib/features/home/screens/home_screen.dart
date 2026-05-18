@@ -5,6 +5,7 @@ import 'package:project/features/home/providers/home_provider.dart';
 import 'package:project/features/home/widgets/quick_action_tile.dart';
 import 'package:project/features/home/widgets/impact_banner.dart';
 import 'package:project/features/home/widgets/leaderboard_section.dart';
+import 'package:project/core/widgets/common/loading_screen.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -33,8 +34,30 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = context.watch<ProfileProvider>().currentUser;
     final home = context.watch<HomeProvider>();
 
-    if (user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (user == null || home.isLoading) {
+      return const LoadingScreen(
+        title: 'Updating your dashboard',
+        subtitle: 'Fetching the latest feed and leaderboards...',
+      );
+    }
+
+    if (home.error != null) {
+      return Scaffold(
+        appBar: AppHeader.greeting(
+          name: user.firstName,
+          avatarUrl: user.profileImage,
+        ),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Failed to load. Please pull down to refresh or try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14),
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -46,21 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (home.isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (home.error != null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('Failed to load stats')),
-              )
-            else
-              ImpactBanner(
-                postCount: home.postCount,
-                requestCount: home.requestCount,
-              ),
+            ImpactBanner(
+              postCount: home.postCount,
+              requestCount: home.requestCount,
+            ),
             SizedBox(height: 4),
             _buildQuickActions(),
             SizedBox(height: 16),

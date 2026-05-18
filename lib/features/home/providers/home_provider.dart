@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
@@ -22,6 +23,55 @@ class HomeProvider extends ChangeNotifier {
   List<LeaderboardEntry> _leaderboard = [];
   bool _isLoading = false;
   String? _error;
+
+  StreamSubscription<List<PostModel>>? _leaderboardSubscription;
+
+  HomeProvider() {
+    initLeaderboardListener();
+  }
+
+  void initLeaderboardListener() {
+    if (_leaderboardSubscription != null) return;
+
+    _leaderboardSubscription =
+        _db.getCompletedPostsStream().listen((posts) async {
+      try {
+        final Map<String, int> userCompletedCounts = {};
+        for (var post in posts) {
+          if (post.userId.isNotEmpty) {
+            userCompletedCounts[post.userId] =
+                (userCompletedCounts[post.userId] ?? 0) + 1;
+          }
+        }
+
+        final sortedEntries = userCompletedCounts.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        final top10Entries = sortedEntries.take(10).toList();
+
+        final List<LeaderboardEntry> leaderboardList = [];
+        for (var entry in top10Entries) {
+          final userResult = await _db.getUserById(entry.key);
+          if (userResult.isSuccess && userResult.data != null) {
+            leaderboardList.add(LeaderboardEntry(
+              user: userResult.data!,
+              count: entry.value,
+            ));
+          }
+        }
+
+        _leaderboard = leaderboardList;
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Error updating leaderboard real-time: $e');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _leaderboardSubscription?.cancel();
+    super.dispose();
+  }
 
   int get postCount => _postCount;
   int get requestCount => _requestCount;

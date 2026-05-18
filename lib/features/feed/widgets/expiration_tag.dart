@@ -6,47 +6,47 @@ class ExpirationTag extends StatelessWidget {
 
   const ExpirationTag({super.key, required this.expirationDate});
 
-  static const _monthNames = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final color = AppColors.expiryColor(expirationDate);
-    final label =
-        '${_monthNames[expirationDate.month - 1]} ${expirationDate.day}';
+    final now = DateTime.now();
+    final difference = expirationDate.difference(now);
+    final days = difference.inDays;
+    final hours = difference.inHours;
+
+    String label;
+    Color color;
+
+    if (difference.isNegative) {
+      label = "Expired";
+      color = AppColors.error500;
+    } else if (hours < 1) {
+      final mins = difference.inMinutes;
+      label = "Expires in ${mins}m";
+      color = AppColors.error500;
+    } else if (hours < 24) {
+      label = "Expires in ${hours}h";
+      color = AppColors.error500;
+    } else if (days == 1) {
+      label = "Expires tomorrow";
+      color = AppColors.warning500;
+    } else {
+      label = "Expires in $days days";
+      color = AppColors.primary500;
+    }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.calendar_today, size: 12, color: Colors.white),
-          SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

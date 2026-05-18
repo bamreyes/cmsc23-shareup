@@ -16,7 +16,7 @@ class DatabaseService {
     }
   }
 
-  /// Updates an existing post 
+  /// Updates an existing post
   Future<Result<bool>> updatePost(
     String postId,
     Map<String, dynamic> updates,
@@ -27,6 +27,57 @@ class DatabaseService {
       return Result.success(true);
     } catch (e) {
       print("Error updating post: $e");
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<bool>> deletePost(String postId) async {
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        final postRef = _firestore.collection('posts').doc(postId);
+        final postDoc = await transaction.get(postRef);
+
+        if (!postDoc.exists) {
+          return Result.error("Item not found");
+        }
+
+        final currentStatus = postDoc.data()?['status'];
+        if (currentStatus == PostStatus.reserved.name) {
+          return Result.error(
+            "Cannot delete this item because it is currently reserved in an active exchange.",
+          );
+        }
+        if (currentStatus == PostStatus.completed.name) {
+          return Result.error(
+            "Cannot delete this item because the exchange has already been completed.",
+          );
+        }
+
+        transaction.update(postRef, {
+          'status': PostStatus.deleted.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        final requestsQuery = await _firestore
+            .collection('requests')
+            .where('postId', isEqualTo: postId)
+            .get();
+
+        for (final doc in requestsQuery.docs) {
+          final reqStatus = doc.data()['status'];
+          if (reqStatus == RequestStatus.pending.name ||
+              reqStatus == RequestStatus.accepted.name) {
+            transaction.update(doc.reference, {
+              'status': RequestStatus.cancelled.name,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+
+        return Result.success(true);
+      });
+    } catch (e) {
+      print("Error deleting post: $e");
       return Result.error(e.toString());
     }
   }
@@ -58,17 +109,16 @@ class DatabaseService {
     }
   }
 
-  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(String postId) async {
+  Future<Result<Map<String, dynamic>>> getRequestDetailsByPostId(
+    String postId,
+  ) async {
     try {
       final postResult = await getPostById(postId);
       if (postResult.isSuccess && postResult.data != null) {
         final post = postResult.data!;
         final userResult = await getUserById(post.userId);
         if (userResult.isSuccess && userResult.data != null) {
-          return Result.success({
-            'post': post,
-            'owner': userResult.data!,
-          });
+          return Result.success({'post': post, 'owner': userResult.data!});
         }
         return Result.error(userResult.error ?? "Failed to fetch user");
       }
@@ -88,7 +138,9 @@ class DatabaseService {
 
       if (snapshot.docs.isNotEmpty) {
         final req = RequestModel.fromJson(
-            snapshot.docs.first.data(), snapshot.docs.first.id);
+          snapshot.docs.first.data(),
+          snapshot.docs.first.id,
+        );
         final finalReq = await _autoCancelIfExpired(req);
         return Result.success(finalReq);
       }
@@ -98,7 +150,7 @@ class DatabaseService {
     }
   }
 
-  /// Gets the accepted request for a post 
+  /// Gets the accepted request for a post
   Future<Result<RequestModel>> getAcceptedRequestByPostId(String postId) async {
     try {
       final snapshot = await _firestore
@@ -110,7 +162,9 @@ class DatabaseService {
 
       if (snapshot.docs.isNotEmpty) {
         final req = RequestModel.fromJson(
-            snapshot.docs.first.data(), snapshot.docs.first.id);
+          snapshot.docs.first.data(),
+          snapshot.docs.first.id,
+        );
         final finalReq = await _autoCancelIfExpired(req);
         return Result.success(finalReq);
       }
@@ -120,7 +174,7 @@ class DatabaseService {
     }
   }
 
-  /// Gets all requests for a post 
+  /// Gets all requests for a post
   Future<Result<List<RequestModel>>> getRequestsForPost(String postId) async {
     try {
       final snapshot = await _firestore
@@ -132,7 +186,7 @@ class DatabaseService {
       final requests = snapshot.docs
           .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
           .toList();
-      
+
       final List<RequestModel> finalRequests = [];
       for (final req in requests) {
         finalRequests.add(await _autoCancelIfExpired(req));
@@ -189,6 +243,18 @@ class DatabaseService {
     }
   }
 
+  Stream<List<PostModel>> getCompletedPostsStream() {
+    return _firestore
+        .collection('posts')
+        .where('status', isEqualTo: PostStatus.completed.name)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => PostModel.fromJson(doc.data(), doc.id))
+              .toList();
+        });
+  }
+
   Future<Result<UserModel>> getUserById(String userId) async {
     try {
       final doc = await _firestore.collection('users').doc(userId).get();
@@ -203,7 +269,6 @@ class DatabaseService {
     }
   }
 
-
   Future<Result<RequestModel>> createRequest(RequestModel request) async {
     try {
       // First check if user already has an ACTIVE request for this post
@@ -211,10 +276,10 @@ class DatabaseService {
           .collection('requests')
           .where('postId', isEqualTo: request.postId)
           .where('requesterId', isEqualTo: request.requesterId)
-          .where('status', whereIn: [
-            RequestStatus.pending.name,
-            RequestStatus.accepted.name,
-          ])
+          .where(
+            'status',
+            whereIn: [RequestStatus.pending.name, RequestStatus.accepted.name],
+          )
           .get();
 
       if (existingReq.docs.isNotEmpty) {
@@ -265,7 +330,7 @@ class DatabaseService {
       final requests = snapshot.docs
           .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
           .toList();
-      
+
       final List<RequestModel> finalRequests = [];
       for (final req in requests) {
         finalRequests.add(await _autoCancelIfExpired(req));
@@ -287,6 +352,14 @@ class DatabaseService {
 
         if (!requestDoc.exists || !postDoc.exists) {
           return Result.error("Request or Post not found");
+        }
+
+        final currentRequestStatus = requestDoc.data()?['status'] as String?;
+        final currentPostStatus = postDoc.data()?['status'] as String?;
+
+        if (currentRequestStatus == RequestStatus.completed.name ||
+            currentPostStatus == PostStatus.completed.name) {
+          return Result.error("Cannot cancel a completed exchange.");
         }
 
         final requesterId = requestDoc.data()?['requesterId'];
@@ -312,7 +385,7 @@ class DatabaseService {
       return Result.error(e.toString());
     }
   }
-  
+
   Future<Result<bool>> acceptRequest(String requestId, String postId) async {
     try {
       return await _firestore.runTransaction((transaction) async {
@@ -368,7 +441,7 @@ class DatabaseService {
   Future<Result<bool>> rejectRequest(String requestId) async {
     try {
       final requestRef = _firestore.collection('requests').doc(requestId);
-      
+
       await requestRef.update({
         'status': RequestStatus.rejected.name,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -395,14 +468,12 @@ class DatabaseService {
         }
 
         final data = postDoc.data()!;
-        final postOwnerId = data['userId'] as String?;
+        final receiverId = data['receiverId'] as String?;
         final currentStatus = data['status'] as String?;
 
-        // Only the post owner can complete via QR
-        if (postOwnerId != scannerId) {
-          return Result.error(
-            "Only the item owner can complete this exchange.",
-          );
+        // Only the receiver can complete via QR
+        if (receiverId != scannerId) {
+          return Result.error("Only the receiver can complete this exchange.");
         }
 
         if (currentStatus == PostStatus.completed.name) {
@@ -410,9 +481,7 @@ class DatabaseService {
         }
 
         if (currentStatus != PostStatus.reserved.name) {
-          return Result.error(
-            "This item is not currently reserved.",
-          );
+          return Result.error("This item is not currently reserved.");
         }
 
         // Find the accepted request so we can mark it completed too
@@ -444,8 +513,13 @@ class DatabaseService {
   }
 
   Future<RequestModel> _autoCancelIfExpired(RequestModel req) async {
-    if ((req.status == RequestStatus.pending || req.status == RequestStatus.accepted) &&
-        req.pickupDatetime.isBefore(DateTime.now())) {
+    final now = DateTime.now();
+    final isPendingExpired = req.status == RequestStatus.pending &&
+        req.pickupDatetime.isBefore(now);
+    final isAcceptedExpired = req.status == RequestStatus.accepted &&
+        req.pickupDatetime.add(const Duration(days: 1)).isBefore(now);
+
+    if (isPendingExpired || isAcceptedExpired) {
       try {
         await cancelRequest(req.id!, req.postId);
         return RequestModel(
