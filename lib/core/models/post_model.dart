@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/core/utils/date_formatter.dart';
 
 enum PostStatus {
   available,
@@ -69,7 +70,7 @@ class PostModel {
       name: json['name'] as String? ?? 'Unknown',
       description: json['description'] as String? ?? '',
       image: json['image'] as String? ?? '',
-      expirationDate: ((json['expirationDate'] ?? json['expiration_date'] ?? Timestamp.now()) as Timestamp).toDate(),
+      expirationDate: DateFormatter.parseDateTime(json['expirationDate'] ?? json['expiration_date']),
       dietaryTags: List<String>.from(json['dietaryTags'] ?? []),
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
@@ -80,8 +81,8 @@ class PostModel {
       ),
       receiverId: json['receiverId'] as String?,
       qrCode: json['qrCode'] as String?,
-      createdAt: ((json['createdAt'] ?? Timestamp.now()) as Timestamp).toDate(),
-      updatedAt: ((json['updatedAt'] ?? Timestamp.now()) as Timestamp).toDate(),
+      createdAt: DateFormatter.parseDateTime(json['createdAt']),
+      updatedAt: DateFormatter.parseDateTime(json['updatedAt']),
     );
   }
 }

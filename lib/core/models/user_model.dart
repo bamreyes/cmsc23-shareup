@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/core/utils/date_formatter.dart';
 import 'notification_preferences.dart';
 
 enum AppMode { light, dark, system }
@@ -84,7 +85,7 @@ class UserModel {
         orElse: () => AppMode.system,
       ),
       dietaryTags: List<String>.from(data["dietaryTags"] ?? []),
-      createdAt: (data["createdAt"] as Timestamp).toDate(),
+      createdAt: DateFormatter.parseDateTime(data["createdAt"]),
       notificationPreferences: NotificationPreferences.fromMap(
         data['notificationPreferences'] ?? {},
       ),

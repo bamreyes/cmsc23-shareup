@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -261,7 +262,7 @@ class _ItemDetailsState extends State<ItemDetails> {
       'description': _descriptionController.text.trim(),
       'image': imageUrl,
       'dietaryTags': _selectedTags,
-      'expirationDate': _expirationDate.toIso8601String(),
+      'expirationDate': Timestamp.fromDate(_expirationDate),
       'latitude': _latitude,
       'longitude': _longitude,
       'locationName': _locationName,
