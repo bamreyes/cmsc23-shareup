@@ -4,9 +4,12 @@ import 'package:project/core/models/request_model.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/services/database_service.dart';
 import 'package:project/core/utils/result.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/core/models/notification_model.dart';
 
 class ExchangeProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   List<PostModel> _posts = [];
   List<RequestModel> _requests = [];
@@ -112,11 +115,28 @@ class ExchangeProvider extends ChangeNotifier {
   }
 
 
-  Future<dynamic> createRequest(RequestModel request) async {
+  Future<dynamic> createRequest(RequestModel request, {required String sellerId, required String itemNavigatorName, required String requesterName}) async {
     final result = await _databaseService.createRequest(request);
 
-    if (result.isSuccess) {
-      _requests.insert(0, result.data!);
+    if (result.isSuccess && result.data != null) {
+      final createdRequest = result.data!;
+      _requests.insert(0, createdRequest);
+      try {
+        await _db
+            .collection('users')
+            .doc(sellerId) 
+            .collection('notifications')
+            .add({
+          'type': NotificationType.requestReceived.name,
+          'message': '$requesterName has requested your $itemNavigatorName. Tap to view the request.',
+          'postId': createdRequest.postId,
+          'requestId': createdRequest.id,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Failed to send request notification payload: $e');
+      }
       notifyListeners();
     }
 
@@ -178,12 +198,15 @@ class ExchangeProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-  final result = await _databaseService.acceptRequest(requestId, postId);
-
-  if (result.isSuccess) {
+    final result = await _databaseService.acceptRequest(requestId, postId);
+    
+    if (result.isSuccess) {
       final postIndex = _posts.indexWhere((p) => p.id == postId);
+      String itemName = 'item';
+
       if (postIndex != -1) {
         final oldPost = _posts[postIndex];
+        itemName = oldPost.name;
         _posts[postIndex] = PostModel(
           id: oldPost.id,
           userId: oldPost.userId,
@@ -233,6 +256,23 @@ class ExchangeProvider extends ChangeNotifier {
       if (_cachedRequesters.containsKey(requesterId)) {
         _postReceivers[postId] = _cachedRequesters[requesterId]!;
       }
+
+      try {
+        await _db
+            .collection('users')
+            .doc(requesterId)
+            .collection('notifications')
+            .add({
+          'type': NotificationType.requestAccepted.name,
+          'message': 'Your request for $itemName has been approved! View details here.',
+          'postId': postId,
+          'requestId': requestId,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Failed to send approval notification payload: $e');
+      }
     }
 
     _isLoading = false;
@@ -240,13 +280,36 @@ class ExchangeProvider extends ChangeNotifier {
     return result;
   }
 
-    Future<dynamic> rejectRequest(String requestId, String postId) async {
+  Future<dynamic> rejectRequest(String requestId, String postId) async {
     _isLoading = true;
     notifyListeners();
+
+    final targetRequest = _inboundRequests[postId]?.firstWhere((req) => req.id == requestId);
+    final postIndex = _posts.indexWhere((p) => p.id == postId);
+    final itemName = postIndex != -1 ? _posts[postIndex].name : 'an item';
 
     final result = await _databaseService.rejectRequest(requestId);
 
     if (result.isSuccess) {
+      if (targetRequest != null) {
+        try {
+          await _db
+              .collection('users')
+              .doc(targetRequest.requesterId)
+              .collection('notifications')
+              .add({
+            'type': NotificationType.requestRejected.name,
+            'message': 'Your request for $itemName was unfortunately declined.',
+            'postId': postId,
+            'requestId': requestId,
+            'isRead': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint('Failed to send rejection notification payload: $e');
+        }
+      }
+      
       _inboundRequests[postId]?.removeWhere((req) => req.id == requestId);
     }
 
@@ -265,7 +328,6 @@ class ExchangeProvider extends ChangeNotifier {
     );
 
     if (result.isSuccess) {
-      // Update local posts list
       final idx = _posts.indexWhere((p) => p.id == postId);
       if (idx != -1) {
         final old = _posts[idx];
