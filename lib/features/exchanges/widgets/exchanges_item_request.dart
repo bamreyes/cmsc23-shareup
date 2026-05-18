@@ -29,26 +29,50 @@ class _ItemRequestState extends State<ItemRequest> {
     final exchangeProvider = context.watch<ExchangeProvider>();
     final requests = exchangeProvider.getInboundRequestsForPost(widget.post.id ?? '');
 
+    final livePost = exchangeProvider.posts.firstWhere(
+      (p) => p.id == widget.post.id,
+      orElse: () => widget.post,
+    );
+
     if (exchangeProvider.isLoading && requests.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (widget.post.status == PostStatus.reserved || widget.post.status == PostStatus.completed) {
-      return const Center(
+    if (livePost.status == PostStatus.reserved || livePost.status == PostStatus.completed) {
+      final message = livePost.status == PostStatus.completed
+          ? "This exchange has been completed."
+          : "This item is already reserved.";
+      
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Text("This item is already reserved.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w500),
+          padding: const EdgeInsets.all(24.0),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w500),
           ),
         ),
       );
     }
 
     if (requests.isEmpty) {
-      return const Center(
-        child: Text("No incoming requests for this item.",
-        style: TextStyle(color: Colors.grey, fontSize: 15)
+      return RefreshIndicator(
+        onRefresh: () async {
+          if (widget.post.id != null) {
+            await exchangeProvider.fetchInboundRequestforPost(widget.post.id!);
+          }
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+            const Center(
+              child: Text(
+                "No incoming requests for this item.",
+                style: TextStyle(color: Colors.grey, fontSize: 15),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -60,6 +84,7 @@ class _ItemRequestState extends State<ItemRequest> {
         }
       },
       child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         itemCount: requests.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
@@ -73,7 +98,7 @@ class _ItemRequestState extends State<ItemRequest> {
             postId: widget.post.id!,
           );
         },
-      )
+      ),
     );
   }
 }
