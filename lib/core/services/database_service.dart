@@ -87,8 +87,10 @@ class DatabaseService {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        return Result.success(RequestModel.fromJson(
-            snapshot.docs.first.data(), snapshot.docs.first.id));
+        final req = RequestModel.fromJson(
+            snapshot.docs.first.data(), snapshot.docs.first.id);
+        final finalReq = await _autoCancelIfExpired(req);
+        return Result.success(finalReq);
       }
       return Result.error("Request not found");
     } catch (e) {
@@ -107,8 +109,10 @@ class DatabaseService {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        return Result.success(RequestModel.fromJson(
-            snapshot.docs.first.data(), snapshot.docs.first.id));
+        final req = RequestModel.fromJson(
+            snapshot.docs.first.data(), snapshot.docs.first.id);
+        final finalReq = await _autoCancelIfExpired(req);
+        return Result.success(finalReq);
       }
       return Result.error("Accepted request not found");
     } catch (e) {
@@ -128,7 +132,12 @@ class DatabaseService {
       final requests = snapshot.docs
           .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
           .toList();
-      return Result.success(requests);
+      
+      final List<RequestModel> finalRequests = [];
+      for (final req in requests) {
+        finalRequests.add(await _autoCancelIfExpired(req));
+      }
+      return Result.success(finalRequests);
     } catch (e) {
       return Result.error(e.toString());
     }
@@ -256,7 +265,12 @@ class DatabaseService {
       final requests = snapshot.docs
           .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
           .toList();
-      return Result.success(requests);
+      
+      final List<RequestModel> finalRequests = [];
+      for (final req in requests) {
+        finalRequests.add(await _autoCancelIfExpired(req));
+      }
+      return Result.success(finalRequests);
     } catch (e) {
       return Result.error(e.toString());
     }
@@ -427,5 +441,26 @@ class DatabaseService {
     } catch (e) {
       return Result.error(e.toString());
     }
+  }
+
+  Future<RequestModel> _autoCancelIfExpired(RequestModel req) async {
+    if ((req.status == RequestStatus.pending || req.status == RequestStatus.accepted) &&
+        req.pickupDatetime.isBefore(DateTime.now())) {
+      try {
+        await cancelRequest(req.id!, req.postId);
+        return RequestModel(
+          id: req.id,
+          postId: req.postId,
+          requesterId: req.requesterId,
+          pickupDatetime: req.pickupDatetime,
+          message: req.message,
+          status: RequestStatus.cancelled,
+          createdAt: req.createdAt,
+        );
+      } catch (_) {
+        return req;
+      }
+    }
+    return req;
   }
 }

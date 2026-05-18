@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import 'package:project/core/constants/colors.dart';
 import 'package:project/core/models/post_model.dart';
@@ -11,17 +9,27 @@ import 'package:project/core/services/cloudinary_service.dart';
 import 'package:project/core/widgets/headers/app_header.dart';
 import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
+import 'package:project/core/widgets/buttons/toggle_button.dart';
+import 'package:project/core/constants/dietary_tag_colors.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
 import 'package:project/features/profile/providers/profile_provider.dart';
 
 const List<String> _kDietaryTags = [
   'Vegan',
+  'Vegetarian',
   'Halal',
+  'Pescatarian',
   'Gluten-Free',
-  'Canned',
+  'Dairy-Free',
+  'Keto-Friendly',
   'Raw Ingredients',
-  'Sugar-Free',
-  'Others',
+  'Home-Cooked',
+  'Baked Goods',
+  'Packaged',
+  'Fresh Produced',
+  'Nut-Free',
+  'Egg-Free',
+  'Shellfish-Free',
 ];
 
 class AddItem extends StatefulWidget {
@@ -32,14 +40,14 @@ class AddItem extends StatefulWidget {
 }
 
 class _AddItemState extends State<AddItem> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _cloudinaryService = CloudinaryService();
-  final _imagePicker = ImagePicker();
 
   File? _imageFile;
-  List<String> _selectedTags = [];
+  final List<String> _selectedTags = [];
   DateTime _expirationDate = DateTime.now().add(const Duration(days: 7));
   double? _latitude;
   double? _longitude;
@@ -47,11 +55,6 @@ class _AddItemState extends State<AddItem> {
 
   bool _isSubmitting = false;
   bool _isLocating = false;
-  String? _imageError;
-  String? _nameError;
-  String? _descriptionError;
-  String? _tagsError;
-  String? _locationError;
 
   @override
   void dispose() {
@@ -61,23 +64,22 @@ class _AddItemState extends State<AddItem> {
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    Navigator.pop(context); 
-    final picked = await _imagePicker.pickImage(
-      source: source,
-      maxWidth: 1080,
-      maxHeight: 1080,
-      imageQuality: 85,
-    );
-    if (picked != null) {
+  Future<void> _pickImage(
+    ImageSource source,
+    FormFieldState<File?> state,
+  ) async {
+    Navigator.pop(context);
+    final exchangeProvider = context.read<ExchangeProvider>();
+    final result = await exchangeProvider.pickImage(source);
+    if (result.isSuccess && result.data != null) {
       setState(() {
-        _imageFile = File(picked.path);
-        _imageError = null;
+        _imageFile = result.data;
       });
+      state.didChange(_imageFile);
     }
   }
 
-  void _showImageSourceSheet() {
+  void _showImageSourceSheet(FormFieldState<File?> state) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -102,12 +104,12 @@ class _AddItemState extends State<AddItem> {
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined),
                 title: const Text('Take a Photo'),
-                onTap: () => _pickImage(ImageSource.camera),
+                onTap: () => _pickImage(ImageSource.camera, state),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
                 title: const Text('Choose from Gallery'),
-                onTap: () => _pickImage(ImageSource.gallery),
+                onTap: () => _pickImage(ImageSource.gallery, state),
               ),
             ],
           ),
@@ -119,59 +121,32 @@ class _AddItemState extends State<AddItem> {
   Future<void> _detectLocation() async {
     setState(() {
       _isLocating = true;
-      _locationError = null;
     });
 
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.deniedForever ||
-          permission == LocationPermission.denied) {
-        setState(() {
-          _locationError = 'Location permission denied.';
-          _isLocating = false;
-        });
-        return;
-      }
+    final exchangeProvider = context.read<ExchangeProvider>();
+    final result = await exchangeProvider.detectCurrentLocation();
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      String name = 'Unknown Location';
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        final parts = [
-          p.street,
-          p.subLocality,
-          p.locality,
-          p.administrativeArea,
-        ].where((s) => s != null && s.isNotEmpty).toList();
-        name = parts.take(3).join(', ');
-      }
-
+    if (result.isSuccess && result.data != null) {
+      final data = result.data!;
       setState(() {
-        _latitude = position.latitude;
-        _longitude = position.longitude;
-        _locationName = name;
-        _locationController.text = name;
-        _locationError = null;
+        _latitude = data['latitude'] as double;
+        _longitude = data['longitude'] as double;
+        _locationName = data['address'] as String;
+        _locationController.text = _locationName!;
         _isLocating = false;
       });
-    } catch (e) {
+    } else {
       setState(() {
-        _locationError = 'Failed to get location. Try again.';
         _isLocating = false;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Failed to get location.'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
     }
   }
 
@@ -188,27 +163,7 @@ class _AddItemState extends State<AddItem> {
   }
 
   bool _validate() {
-    bool valid = true;
-    setState(() {
-      _imageError = _imageFile == null ? 'Please add a photo of the item.' : null;
-      _nameError = _nameController.text.trim().isEmpty ? 'Item name is required.' : null;
-      _descriptionError = _descriptionController.text.trim().isEmpty
-          ? 'Description is required.'
-          : null;
-      _tagsError = _selectedTags.isEmpty ? 'Select at least one dietary tag.' : null;
-      _locationError = (_latitude == null || _longitude == null)
-          ? 'Location is required. Use "Detect Location".'
-          : null;
-    });
-
-    if (_imageError != null ||
-        _nameError != null ||
-        _descriptionError != null ||
-        _tagsError != null ||
-        _locationError != null) {
-      valid = false;
-    }
-    return valid;
+    return _formKey.currentState?.validate() ?? false;
   }
 
   Future<void> _submit() async {
@@ -285,120 +240,175 @@ class _AddItemState extends State<AddItem> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppHeader.back(
-        title: 'Add Item',
-        onBack: () => context.pop(),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildLabel(theme, 'Item Photo', required: true),
-            const SizedBox(height: 8),
-            _buildImagePicker(theme, colorScheme, borderColor),
-            if (_imageError != null) _buildError(theme, _imageError!),
-            const SizedBox(height: 20),
-
-            _buildLabel(theme, 'Item Name', required: true),
-            const SizedBox(height: 8),
-            AppTextField(
-              controller: _nameController,
-              hintText: 'Enter name',
-              onChanged: (_) => setState(() => _nameError = null),
-            ),
-            if (_nameError != null) _buildError(theme, _nameError!),
-            const SizedBox(height: 20),
-
-            _buildLabel(theme, 'Item Description', required: true),
-            const SizedBox(height: 8),
-            AppTextField(
-              controller: _descriptionController,
-              hintText: 'Enter description',
-              maxLines: 3,
-              keyboardType: TextInputType.multiline,
-              onChanged: (_) => setState(() => _descriptionError = null),
-            ),
-            if (_descriptionError != null)
-              _buildError(theme, _descriptionError!),
-            const SizedBox(height: 20),
-
-            _buildDietaryTagsRow(theme, colorScheme),
-            if (_tagsError != null) _buildError(theme, _tagsError!),
-            const SizedBox(height: 20),
-
-            _buildLabel(theme, 'Expiration Date', required: true),
-            const SizedBox(height: 8),
-            AppTextField(
-              hintText: _formatDate(_expirationDate),
-              readOnly: true,
-              onTap: _pickExpirationDate,
-              suffixIcon: Icon(
-                Icons.calendar_today_outlined,
-                size: 18,
-                color: colorScheme.onSurfaceVariant,
+      appBar: AppHeader.back(title: 'Add Item', onBack: () => context.pop()),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildLabel(theme, 'Item Photo', required: true),
+              const SizedBox(height: 8),
+              FormField<File>(
+                validator: (_) => _imageFile == null
+                    ? 'Please add a photo of the item.'
+                    : null,
+                autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                builder: (state) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildImagePicker(theme, colorScheme, borderColor, state),
+                      if (state.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, left: 4),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: theme.colorScheme.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            _buildLabel(theme, 'Pickup Location', required: true),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: AppTextField(
-                    controller: _locationController,
-                    hintText: 'Add Location',
-                    readOnly: true,
-                    suffixIcon: Icon(
-                      Icons.location_on_outlined,
-                      size: 18,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+              AppTextField(
+                controller: _nameController,
+                labelText: 'Item Name',
+                hasAsterisk: true,
+                hintText: 'Enter name',
+                autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Item name is required.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              AppTextField(
+                controller: _descriptionController,
+                labelText: 'Item Description',
+                hasAsterisk: true,
+                hintText: 'Enter description',
+                maxLines: 3,
+                keyboardType: TextInputType.multiline,
+                autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Description is required.';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+
+              FormField<List<String>>(
+                initialValue: _selectedTags,
+                validator: (_) => _selectedTags.isEmpty
+                    ? 'Select at least one dietary tag.'
+                    : null,
+                autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                builder: (state) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDietaryTagsRow(theme, colorScheme, state),
+                      if (state.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, left: 4),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: theme.colorScheme.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              SizedBox(height: 20),
+
+              AppTextField(
+                hintText: _formatDate(_expirationDate),
+                labelText: 'Expiration Date',
+                readOnly: true,
+                onTap: _pickExpirationDate,
+                suffixIcon: Icon(
+                  Icons.calendar_today_outlined,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 10),
-                _isLocating
-                    ? const Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(height: 20),
+
+              AppTextField(
+                controller: _locationController,
+                labelText: 'Pickup Location',
+                hasAsterisk: true,
+                hintText: 'Add Location',
+                readOnly: true,
+                autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+                validator: (value) {
+                  if (_latitude == null ||
+                      _longitude == null ||
+                      value == null ||
+                      value.trim().isEmpty) {
+                    return 'Location is required. Use "Detect".';
+                  }
+                  return null;
+                },
+                suffixIcon: _isLocating
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         ),
                       )
                     : TextButton.icon(
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 14,
-                          ),
+                          padding: const EdgeInsets.only(right: 12),
                         ),
                         onPressed: _detectLocation,
-                        icon: const Icon(Icons.my_location, size: 18),
-                        label: const Text('Detect'),
+                        icon: const Icon(Icons.my_location, size: 16),
+                        label: const Text(
+                          'Detect',
+                          style: TextStyle(fontSize: 13),
+                        ),
                       ),
-              ],
-            ),
-            if (_locationError != null) _buildError(theme, _locationError!),
-            const SizedBox(height: 40),
+              ),
+              const SizedBox(height: 40),
 
-            PrimaryButton(
-              text: 'Post Item',
-              isLoading: _isSubmitting,
-              onPressed: _isSubmitting ? null : _submit,
-            ),
-            const SizedBox(height: 24),
-          ],
+              PrimaryButton(
+                text: 'Post Item',
+                isLoading: _isSubmitting,
+                onPressed: _isSubmitting ? null : _submit,
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
   }
 
-
-  Widget _buildLabel(ThemeData theme, String label,
-      {bool required = false}) {
+  Widget _buildLabel(ThemeData theme, String label, {bool required = false}) {
+    final colorScheme = theme.colorScheme;
     return Row(
       children: [
         Text(
@@ -411,7 +421,7 @@ class _AddItemState extends State<AddItem> {
           Text(
             ' *',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.danger,
+              color: colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -419,31 +429,22 @@ class _AddItemState extends State<AddItem> {
     );
   }
 
-  Widget _buildError(ThemeData theme, String message) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, left: 4),
-      child: Text(
-        message,
-        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.danger),
-      ),
-    );
-  }
-
   Widget _buildImagePicker(
     ThemeData theme,
     ColorScheme colorScheme,
     Color borderColor,
+    FormFieldState<File?> state,
   ) {
     return GestureDetector(
-      onTap: _showImageSourceSheet,
+      onTap: () => _showImageSourceSheet(state),
       child: Container(
         height: 220,
         width: double.infinity,
         decoration: BoxDecoration(
           color: colorScheme.surface,
           border: Border.all(
-            color: _imageError != null ? AppColors.danger : borderColor,
-            style: _imageFile == null ? BorderStyle.solid : BorderStyle.solid,
+            color: state.hasError ? AppColors.danger : borderColor,
+            style: BorderStyle.solid,
           ),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -459,15 +460,21 @@ class _AddItemState extends State<AddItem> {
                     top: 8,
                     right: 8,
                     child: GestureDetector(
-                      onTap: () => setState(() => _imageFile = null),
+                      onTap: () {
+                        setState(() => _imageFile = null);
+                        state.didChange(null);
+                      },
                       child: Container(
                         decoration: const BoxDecoration(
                           color: Colors.black54,
                           shape: BoxShape.circle,
                         ),
                         padding: const EdgeInsets.all(4),
-                        child: const Icon(Icons.close,
-                            color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
@@ -490,7 +497,11 @@ class _AddItemState extends State<AddItem> {
     );
   }
 
-  Widget _buildDietaryTagsRow(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildDietaryTagsRow(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    FormFieldState<List<String>> state,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -517,41 +528,20 @@ class _AddItemState extends State<AddItem> {
           runSpacing: 8,
           children: _kDietaryTags.map((tag) {
             final selected = _selectedTags.contains(tag);
-            return GestureDetector(
-              onTap: () {
+            return ToggleButton(
+              text: tag,
+              isSelected: selected,
+              activeColor: DietaryTagColors.colorFor(tag),
+              onPressed: () {
                 setState(() {
                   if (selected) {
                     _selectedTags.remove(tag);
                   } else {
                     _selectedTags.add(tag);
                   }
-                  _tagsError = null;
                 });
+                state.didChange(_selectedTags);
               },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                      selected ? AppColors.primary500 : colorScheme.surface,
-                  border: Border.all(
-                    color: selected
-                        ? AppColors.primary500
-                        : AppColors.neutral300,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  tag,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: selected ? Colors.white : colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
             );
           }).toList(),
         ),
@@ -561,8 +551,18 @@ class _AddItemState extends State<AddItem> {
 
   String _formatDate(DateTime date) {
     final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }

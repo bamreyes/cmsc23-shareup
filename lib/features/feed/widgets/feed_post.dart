@@ -50,6 +50,7 @@ class _FeedPostState extends State<FeedPost> {
         },
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPostHeader(distanceText),
           _buildPostImage(),
