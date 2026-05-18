@@ -16,6 +16,10 @@ class ToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final color = activeColor ?? theme.primaryColor;
+
     final baseStyle = OutlinedButton.styleFrom(
       minimumSize: Size.zero,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -23,7 +27,6 @@ class ToggleButton extends StatelessWidget {
     );
 
     if (isSelected) {
-      final color = activeColor ?? Theme.of(context).primaryColor;
       return FilledButton(
         style: FilledButton.styleFrom(
           minimumSize: baseStyle.minimumSize?.resolve({}),
@@ -38,7 +41,14 @@ class ToggleButton extends StatelessWidget {
     }
 
     return OutlinedButton(
-      style: baseStyle,
+      style: OutlinedButton.styleFrom(
+        minimumSize: baseStyle.minimumSize?.resolve({}),
+        padding: baseStyle.padding?.resolve({}),
+        tapTargetSize: baseStyle.tapTargetSize,
+        foregroundColor: color,
+        side: BorderSide(color: color),
+        backgroundColor: isDark ? color.withOpacity(0.08) : null,
+      ),
       onPressed: onPressed,
       child: Text(text),
     );

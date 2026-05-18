@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:project/core/constants/colors.dart';
+import 'package:project/core/widgets/common/loading_screen.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/request_model.dart';
 import 'package:project/core/widgets/headers/app_header.dart';
@@ -196,6 +197,13 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const LoadingScreen(
+        title: 'Submitting request',
+        subtitle: 'Sending your request to the sharer. Please wait...',
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final exchangeProvider = context.watch<ExchangeProvider>();
@@ -221,7 +229,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
               uploaderName: _uploaderName,
               distance: _distanceLabel,
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 12),
             ItemImageSection(post: widget.post),
             SizedBox(height: 24),
             _buildScheduleCard(theme, colorScheme),

@@ -118,14 +118,26 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  factory AppHeader.back({required String title, VoidCallback? onBack}) {
+  factory AppHeader.back({
+    required String title,
+    VoidCallback? onBack,
+    PreferredSizeWidget? bottom,
+    Color? backgroundColor,
+    Color? textColor,
+  }) {
     return AppHeader(
       centerTitle: true,
+      backgroundColor: backgroundColor,
       leading: _CircleIconButton(icon: Icons.arrow_back, onPressed: onBack),
       title: Text(
         title,
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
       ),
+      bottom: bottom,
     );
   }
 

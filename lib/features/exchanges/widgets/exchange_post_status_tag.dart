@@ -41,7 +41,7 @@ class ExchangePostStatusTag extends StatelessWidget {
         backgroundColor = isDark
             ? accentColor.withValues(alpha: 0.15)
             : AppColors.error50;
-        label = 'Expired';
+        label = 'Deleted';
         break;
     }
 

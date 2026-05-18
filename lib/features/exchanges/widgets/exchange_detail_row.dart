@@ -39,15 +39,16 @@ class ExchangeDetailRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const Spacer(),
+        const SizedBox(width: 16),
         Expanded(
           child: Text(
             detail,
-            textAlign: TextAlign.end,
             style: TextStyle(fontWeight: FontWeight.bold),
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            maxLines: 1,
           ),
-        )
+        ),
       ],
     );
   }

@@ -42,7 +42,7 @@ class FeedItemScreen extends StatelessWidget {
         onClose: () => context.pop(),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -100,7 +100,7 @@ class FeedItemScreen extends StatelessWidget {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: _buildBottomAction(context, isReserved),
         ),
       ),
