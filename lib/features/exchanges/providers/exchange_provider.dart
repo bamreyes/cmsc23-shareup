@@ -33,7 +33,8 @@ class ExchangeProvider extends ChangeNotifier {
   RequestModel? getRequestForPost(String postId) => _postRequests[postId];
   UserModel? getReceiverForPost(String postId) => _postReceivers[postId];
 
-  List<RequestModel> getInboundRequestsForPost(String postId) => _inboundRequests[postId] ?? [];
+  List<RequestModel> getInboundRequestsForPost(String postId) =>
+      _inboundRequests[postId] ?? [];
   UserModel? getCachedRequester(String userId) => _cachedRequesters[userId];
 
   bool get isLoading => _isLoading;
@@ -69,7 +70,6 @@ class ExchangeProvider extends ChangeNotifier {
     });
   }
 
-
   Future<void> fetchMyPosts(String userId) async {
     _isLoading = true;
     notifyListeners();
@@ -91,8 +91,10 @@ class ExchangeProvider extends ChangeNotifier {
     if (result.isSuccess) {
       _requests = result.data ?? [];
 
-    for (var req in _requests) {
-        final detailsResult = await _databaseService.getRequestDetailsByPostId(req.postId);
+      for (var req in _requests) {
+        final detailsResult = await _databaseService.getRequestDetailsByPostId(
+          req.postId,
+        );
         if (detailsResult.isSuccess && detailsResult.data != null) {
           _requestDetails[req.postId] = detailsResult.data!;
         }
@@ -110,14 +112,14 @@ class ExchangeProvider extends ChangeNotifier {
     if (_postReceivers.containsKey(post.id)) return;
 
     bool fetchedUser = false;
-    final requestResult =
-        await _databaseService.getRequestByPostId(post.id!);
+    final requestResult = await _databaseService.getRequestByPostId(post.id!);
     if (requestResult.isSuccess && requestResult.data != null) {
       final request = requestResult.data!;
       _postRequests[post.id!] = request;
 
-      final userResult =
-          await _databaseService.getUserById(request.requesterId);
+      final userResult = await _databaseService.getUserById(
+        request.requesterId,
+      );
       if (userResult.isSuccess && userResult.data != null) {
         _postReceivers[post.id!] = userResult.data!;
         fetchedUser = true;
@@ -125,8 +127,7 @@ class ExchangeProvider extends ChangeNotifier {
     }
 
     if (!fetchedUser && post.receiverId != null) {
-      final userResult =
-          await _databaseService.getUserById(post.receiverId!);
+      final userResult = await _databaseService.getUserById(post.receiverId!);
       if (userResult.isSuccess && userResult.data != null) {
         _postReceivers[post.id!] = userResult.data!;
       }
@@ -135,8 +136,7 @@ class ExchangeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
-  /// Creates a new post in Firestore 
+  /// Creates a new post in Firestore
   Future<Result<bool>> createPost(PostModel post) async {
     final result = await _databaseService.createPost(post);
 
@@ -148,6 +148,22 @@ class ExchangeProvider extends ChangeNotifier {
     return result;
   }
 
+  Future<Result<bool>> deletePost(String postId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _databaseService.updatePost(postId, {
+      'status': PostStatus.deleted.name,
+    });
+
+    if (result.isSuccess) {
+      _posts.removeWhere((p) => p.id == postId);
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return result;
+  }
 
   Future<dynamic> createRequest(RequestModel request) async {
     final result = await _databaseService.createRequest(request);
@@ -167,8 +183,7 @@ class ExchangeProvider extends ChangeNotifier {
     final result = await _databaseService.cancelRequest(requestId, postId);
 
     if (result.isSuccess) {
-      final index =
-          _requests.indexWhere((request) => request.id == requestId);
+      final index = _requests.indexWhere((request) => request.id == requestId);
       if (index != -1) {
         final oldReq = _requests[index];
         _requests[index] = RequestModel(
@@ -197,9 +212,11 @@ class ExchangeProvider extends ChangeNotifier {
     if (result.isSuccess) {
       _inboundRequests[postId] = result.data ?? [];
 
-    for (var req in _inboundRequests[postId]!) {
+      for (var req in _inboundRequests[postId]!) {
         if (!_cachedRequesters.containsKey(req.requesterId)) {
-          final userResult = await _databaseService.getUserById(req.requesterId);
+          final userResult = await _databaseService.getUserById(
+            req.requesterId,
+          );
           if (userResult.isSuccess && userResult.data != null) {
             _cachedRequesters[req.requesterId] = userResult.data!;
           }
@@ -211,13 +228,17 @@ class ExchangeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Result<bool>> acceptRequest(String requestId, String postId, String requesterId) async {
+  Future<Result<bool>> acceptRequest(
+    String requestId,
+    String postId,
+    String requesterId,
+  ) async {
     _isLoading = true;
     notifyListeners();
 
-  final result = await _databaseService.acceptRequest(requestId, postId);
+    final result = await _databaseService.acceptRequest(requestId, postId);
 
-  if (result.isSuccess) {
+    if (result.isSuccess) {
       final postIndex = _posts.indexWhere((p) => p.id == postId);
       if (postIndex != -1) {
         final oldPost = _posts[postIndex];
@@ -277,7 +298,7 @@ class ExchangeProvider extends ChangeNotifier {
     return result;
   }
 
-    Future<dynamic> rejectRequest(String requestId, String postId) async {
+  Future<dynamic> rejectRequest(String requestId, String postId) async {
     _isLoading = true;
     notifyListeners();
 

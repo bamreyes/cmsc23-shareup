@@ -341,6 +341,7 @@ class _AddItemState extends State<AddItem> {
 
               AppTextField(
                 hintText: _formatDate(_expirationDate),
+                labelText: 'Expiration Date',
                 readOnly: true,
                 onTap: _pickExpirationDate,
                 suffixIcon: Icon(

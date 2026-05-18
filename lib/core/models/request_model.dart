@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/core/utils/date_formatter.dart';
 
 enum RequestStatus { pending, accepted, rejected, cancelled, completed }
 
@@ -37,14 +38,13 @@ class RequestModel {
       id: docId,
       postId: data['postId'],
       requesterId: data['requesterId'],
-      pickupDatetime: ((data['pickupDatetime'] ?? data['pickupDateTime'] ?? Timestamp.now()) as Timestamp)
-          .toDate(),
+      pickupDatetime: DateFormatter.parseDateTime(data['pickupDatetime'] ?? data['pickupDateTime']),
       message: data['message'],
       status: RequestStatus.values.firstWhere(
         (e) => e.name == data['status'],
         orElse: () => RequestStatus.pending,
       ),
-      createdAt: ((data['createdAt'] ?? Timestamp.now()) as Timestamp).toDate(),
+      createdAt: DateFormatter.parseDateTime(data['createdAt']),
     );
   }
 }

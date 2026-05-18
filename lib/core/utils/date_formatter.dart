@@ -1,4 +1,17 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class DateFormatter {
+  static DateTime parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    if (value is DateTime) return value;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.now();
+  }
+
   static const List<String> _months = [
     'January',
     'February',
