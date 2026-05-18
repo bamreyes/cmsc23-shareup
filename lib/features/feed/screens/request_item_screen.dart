@@ -150,6 +150,7 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       selectedTime!.hour,
       selectedTime!.minute,
     );
+    
     final request = RequestModel(
       postId: widget.post.id!,
       requesterId: profile.userId ?? "",
@@ -158,8 +159,19 @@ class _RequestItemScreenState extends State<RequestItemScreen> {
       status: RequestStatus.pending,
       createdAt: DateTime.now(),
     );
+
+    final requesterName = profile.currentUser != null
+        ? "${profile.currentUser!.firstName} ${profile.currentUser!.lastName}".trim()
+        : "";
+    final dynamicDisplayName = requesterName.isNotEmpty 
+        ? requesterName 
+        : (profile.currentUser?.username ?? "Someone");
+
     final result = await context.read<ExchangeProvider>().createRequest(
       request,
+      sellerId: widget.post.userId,
+      itemNavigatorName: widget.post.name,
+      requesterName: dynamicDisplayName,
     );
 
     if (result.isSuccess) {

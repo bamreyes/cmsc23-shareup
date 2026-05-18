@@ -3,14 +3,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:project/core/models/user_model.dart';
 import 'package:project/core/theme/app_theme.dart';
-import 'package:project/features/profile/providers/profile_provider.dart';
-import 'firebase_options.dart';
 import 'package:project/core/router/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:project/features/auth/providers/auth_provider.dart';
 import 'package:project/features/feed/providers/feed_provider.dart';
+import 'package:project/features/profile/providers/profile_provider.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
 import 'package:project/features/home/providers/home_provider.dart';
+import 'package:project/features/notifications/providers/notification_provider.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,11 +41,12 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: authProvider),
-        ChangeNotifierProvider.value(value: feedProvider),
-        ChangeNotifierProvider.value(value: profileProvider),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => FeedProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ExchangeProvider()),
-        ChangeNotifierProvider.value(value: homeProvider),
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),
