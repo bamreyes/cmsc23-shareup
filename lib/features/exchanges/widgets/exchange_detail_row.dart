@@ -39,12 +39,15 @@ class ExchangeDetailRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        Spacer(),
-        Text(
-          detail,
-          style: TextStyle(fontWeight: FontWeight.bold),
-          overflow: TextOverflow.ellipsis,
-        ),
+        const Spacer(),
+        Expanded(
+          child: Text(
+            detail,
+            textAlign: TextAlign.end,
+            style: TextStyle(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          ),
+        )
       ],
     );
   }
