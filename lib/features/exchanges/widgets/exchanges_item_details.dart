@@ -10,18 +10,27 @@ import 'package:project/core/constants/colors.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/services/cloudinary_service.dart';
 import 'package:project/core/services/database_service.dart';
-import 'package:project/core/widgets/buttons/primary_button.dart';
 import 'package:project/core/widgets/inputs/app_text_field.dart';
+import 'package:project/core/widgets/buttons/toggle_button.dart';
+import 'package:project/core/constants/dietary_tag_colors.dart';
 import 'package:project/features/exchanges/providers/exchange_provider.dart';
 
 const List<String> _kDietaryTags = [
   'Vegan',
+  'Vegetarian',
   'Halal',
+  'Pescatarian',
   'Gluten-Free',
-  'Canned',
+  'Dairy-Free',
+  'Keto-Friendly',
   'Raw Ingredients',
-  'Sugar-Free',
-  'Others',
+  'Home-Cooked',
+  'Baked Goods',
+  'Packaged',
+  'Fresh Produced',
+  'Nut-Free',
+  'Egg-Free',
+  'Shellfish-Free',
 ];
 
 class ItemDetails extends StatefulWidget {
@@ -30,10 +39,11 @@ class ItemDetails extends StatefulWidget {
   const ItemDetails({super.key, required this.post});
 
   @override
-  State<ItemDetails> createState() => _ItemDetailsState();
+  State<ItemDetails> createState() => ItemDetailsState();
 }
 
-class _ItemDetailsState extends State<ItemDetails> {
+class ItemDetailsState extends State<ItemDetails> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _locationController;
@@ -48,8 +58,6 @@ class _ItemDetailsState extends State<ItemDetails> {
   late double _longitude;
   late String _locationName;
 
-  bool _isEditing = false;
-  bool _isSaving = false;
   bool _isDeleting = false;
   bool _isLocating = false;
 
@@ -81,7 +89,8 @@ class _ItemDetailsState extends State<ItemDetails> {
   // Helpers
   bool get _isReservedOrDone =>
       widget.post.status == PostStatus.reserved ||
-      widget.post.status == PostStatus.completed;
+      widget.post.status == PostStatus.completed ||
+      widget.post.status == PostStatus.deleted;
 
   String _formatDate(DateTime date) {
     const months = [
@@ -101,7 +110,7 @@ class _ItemDetailsState extends State<ItemDetails> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  void _showImageSourceSheet() {
+  void _showImageSourceSheet(FormFieldState<File?> state) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -126,12 +135,12 @@ class _ItemDetailsState extends State<ItemDetails> {
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined),
                 title: const Text('Take a Photo'),
-                onTap: () => _pickImage(ImageSource.camera),
+                onTap: () => _pickImage(ImageSource.camera, state),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
                 title: const Text('Choose from Gallery'),
-                onTap: () => _pickImage(ImageSource.gallery),
+                onTap: () => _pickImage(ImageSource.gallery, state),
               ),
             ],
           ),
@@ -140,7 +149,10 @@ class _ItemDetailsState extends State<ItemDetails> {
     );
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(
+    ImageSource source,
+    FormFieldState<File?> state,
+  ) async {
     Navigator.pop(context);
     final picked = await _imagePicker.pickImage(
       source: source,
@@ -150,6 +162,7 @@ class _ItemDetailsState extends State<ItemDetails> {
     );
     if (picked != null && mounted) {
       setState(() => _newImageFile = File(picked.path));
+      state.didChange(_newImageFile);
     }
   }
 
@@ -164,7 +177,7 @@ class _ItemDetailsState extends State<ItemDetails> {
           permission == LocationPermission.denied) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission denied.')),
+            SnackBar(content: Text('Location permission denied.')),
           );
         }
         setState(() => _isLocating = false);
@@ -172,9 +185,7 @@ class _ItemDetailsState extends State<ItemDetails> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
+        locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
       );
       final placemarks = await placemarkFromCoordinates(
         position.latitude,
@@ -206,7 +217,7 @@ class _ItemDetailsState extends State<ItemDetails> {
       if (mounted) {
         setState(() => _isLocating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get location. Try again.')),
+          SnackBar(content: Text('Failed to get location. Try again.')),
         );
       }
     }
@@ -217,25 +228,24 @@ class _ItemDetailsState extends State<ItemDetails> {
       context: context,
       initialDate: _expirationDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: DateTime.now().add(Duration(days: 365)),
     );
     if (picked != null) setState(() => _expirationDate = picked);
   }
 
-  Future<void> _save() async {
-    if (_nameController.text.trim().isEmpty ||
-        _descriptionController.text.trim().isEmpty ||
-        _selectedTags.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all required fields.'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+  Future<void> save() async {
+    if (_isReservedOrDone) {
+      context.pop();
       return;
     }
 
-    setState(() => _isSaving = true);
+    if (_formKey.currentState?.validate() != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(child: CircularProgressIndicator()),
+    );
 
     String imageUrl = widget.post.image;
 
@@ -244,6 +254,7 @@ class _ItemDetailsState extends State<ItemDetails> {
       final uploadResult = await _cloudinaryService.uploadFile(_newImageFile!);
       if (!uploadResult.isSuccess) {
         if (mounted) {
+          Navigator.pop(context); // Pop loading indicator
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Image upload failed: ${uploadResult.error}'),
@@ -251,7 +262,6 @@ class _ItemDetailsState extends State<ItemDetails> {
             ),
           );
         }
-        setState(() => _isSaving = false);
         return;
       }
       imageUrl = uploadResult.data!;
@@ -272,23 +282,24 @@ class _ItemDetailsState extends State<ItemDetails> {
     final result = await db.updatePost(widget.post.id!, updates);
 
     if (!mounted) return;
-    setState(() => _isSaving = false);
+    Navigator.pop(context);
 
     if (result.isSuccess) {
       // refresh the posts list in the provider
       context.read<ExchangeProvider>().fetchMyPosts(widget.post.userId);
 
       setState(() {
-        _isEditing = false;
         _newImageFile = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Item updated successfully!'),
           backgroundColor: AppColors.primary500,
         ),
       );
+
+      context.pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -299,33 +310,17 @@ class _ItemDetailsState extends State<ItemDetails> {
     }
   }
 
-  void _cancelEdit() {
-    setState(() {
-      // reset all fields back to the original post data
-      _nameController.text = widget.post.name;
-      _descriptionController.text = widget.post.description;
-      _locationController.text = widget.post.locationName;
-      _selectedTags = List<String>.from(widget.post.dietaryTags);
-      _expirationDate = widget.post.expirationDate;
-      _latitude = widget.post.latitude;
-      _longitude = widget.post.longitude;
-      _locationName = widget.post.locationName;
-      _newImageFile = null;
-      _isEditing = false;
-    });
-  }
-
   // Delete
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Delete Item?',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text(
+        content: Text(
           'This will permanently remove the item. This action cannot be undone.',
         ),
         actions: [
@@ -357,17 +352,13 @@ class _ItemDetailsState extends State<ItemDetails> {
   Future<void> _deletePost() async {
     setState(() => _isDeleting = true);
 
-    final db = DatabaseService();
-    final result = await db.updatePost(widget.post.id!, {
-      'status': PostStatus.deleted.name,
-    });
+    final provider = context.read<ExchangeProvider>();
+    final result = await provider.deletePost(widget.post.id!);
 
     if (!mounted) return;
     setState(() => _isDeleting = false);
 
     if (result.isSuccess) {
-      // refresh provider then go back
-      context.read<ExchangeProvider>().fetchMyPosts(widget.post.userId);
       context.pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -388,104 +379,179 @@ class _ItemDetailsState extends State<ItemDetails> {
         ? AppColors.grey200
         : AppColors.neutral800;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLabel(theme, 'Item Photo', required: true),
-          const SizedBox(height: 8),
-          _buildImageSection(theme, borderColor),
-          const SizedBox(height: 20),
-
-          _buildLabel(theme, 'Item Name', required: true),
-          const SizedBox(height: 8),
-          AppTextField(
-            controller: _nameController,
-            hintText: 'Enter name',
-            readOnly: !_isEditing,
-          ),
-          const SizedBox(height: 20),
-
-          _buildLabel(theme, 'Item Description', required: true),
-          const SizedBox(height: 8),
-          AppTextField(
-            controller: _descriptionController,
-            hintText: 'Enter description',
-            maxLines: 3,
-            keyboardType: TextInputType.multiline,
-            readOnly: !_isEditing,
-          ),
-          const SizedBox(height: 20),
-
-          _buildDietaryTagsSection(theme, colorScheme),
-          const SizedBox(height: 20),
-
-          _buildLabel(theme, 'Expiration Date', required: true),
-          const SizedBox(height: 8),
-          AppTextField(
-            hintText: _formatDate(_expirationDate),
-            readOnly: true,
-            onTap: _isEditing ? _pickExpirationDate : null,
-            suffixIcon: Icon(
-              Icons.calendar_today_outlined,
-              size: 18,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          _buildLabel(theme, 'Location', required: true),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: _locationController,
-                  hintText: 'Add Location',
-                  readOnly: true,
-                  suffixIcon: Icon(
-                    Icons.location_on_outlined,
-                    size: 18,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              if (_isEditing) ...[
-                const SizedBox(width: 10),
-                _isLocating
-                    ? const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : TextButton.icon(
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 14,
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildLabel(theme, 'Item Photo', required: true),
+            SizedBox(height: 8),
+            FormField<File>(
+              validator: (_) =>
+                  (_newImageFile == null && widget.post.image.isEmpty)
+                  ? 'Please add a photo of the item.'
+                  : null,
+              autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+              builder: (state) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildImagePicker(theme, colorScheme, borderColor, state),
+                    if (state.hasError)
+                      Padding(
+                        padding: EdgeInsets.only(top: 6, left: 4),
+                        child: Text(
+                          state.errorText!,
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        onPressed: _detectLocation,
-                        icon: const Icon(Icons.my_location, size: 18),
-                        label: const Text('Detect'),
                       ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 32),
+                  ],
+                );
+              },
+            ),
+            SizedBox(height: 20),
 
-          _buildActionButtons(theme),
-          const SizedBox(height: 24),
-        ],
+            AppTextField(
+              controller: _nameController,
+              labelText: 'Item Name',
+              hasAsterisk: true,
+              hintText: 'Enter name',
+              readOnly: _isReservedOrDone,
+              autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Item name is required.';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 20),
+
+            AppTextField(
+              controller: _descriptionController,
+              labelText: 'Item Description',
+              hasAsterisk: true,
+              hintText: 'Enter description',
+              maxLines: 3,
+              keyboardType: TextInputType.multiline,
+              readOnly: _isReservedOrDone,
+              autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Description is required.';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 20),
+
+            FormField<List<String>>(
+              initialValue: _selectedTags,
+              validator: (_) => _selectedTags.isEmpty
+                  ? 'Select at least one dietary tag.'
+                  : null,
+              autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+              builder: (state) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDietaryTagsRow(theme, colorScheme, state),
+                    if (state.hasError)
+                      Padding(
+                        padding: EdgeInsets.only(top: 6, left: 4),
+                        child: Text(
+                          state.errorText!,
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            SizedBox(height: 20),
+
+            AppTextField(
+              labelText: 'Expiration Date',
+              hasAsterisk: true,
+              hintText: _formatDate(_expirationDate),
+              readOnly: true,
+              onTap: _isReservedOrDone ? null : _pickExpirationDate,
+              suffixIcon: Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(height: 20),
+
+            AppTextField(
+              controller: _locationController,
+              labelText: 'Pickup Location',
+              hasAsterisk: true,
+              hintText: 'Add Location',
+              readOnly: true,
+              autovalidateMode: AutovalidateMode.onUserInteractionIfError,
+              validator: (value) {
+                if (_latitude == 0.0 ||
+                    _longitude == 0.0 ||
+                    value == null ||
+                    value.trim().isEmpty) {
+                  return 'Location is required. Use "Detect".';
+                }
+                return null;
+              },
+              suffixIcon: _isReservedOrDone
+                  ? null
+                  : (_isLocating
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          )
+                        : TextButton.icon(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.only(right: 12),
+                            ),
+                            onPressed: _detectLocation,
+                            icon: Icon(Icons.my_location, size: 16),
+                            label: Text(
+                              'Detect',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          )),
+            ),
+            SizedBox(height: 40),
+
+            if (widget.post.status != PostStatus.deleted) ...[
+              _buildDeleteButton(),
+              SizedBox(height: 24),
+            ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildLabel(ThemeData theme, String label, {bool required = false}) {
+    final colorScheme = theme.colorScheme;
     return Row(
       children: [
         Text(
@@ -498,7 +564,7 @@ class _ItemDetailsState extends State<ItemDetails> {
           Text(
             ' *',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.danger,
+              color: colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -506,90 +572,104 @@ class _ItemDetailsState extends State<ItemDetails> {
     );
   }
 
-  Widget _buildImageSection(ThemeData theme, Color borderColor) {
+  Widget _buildImagePicker(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    Color borderColor,
+    FormFieldState<File?> state,
+  ) {
     final hasNewImage = _newImageFile != null;
     final existingUrl = widget.post.image;
 
     return GestureDetector(
-      onTap: _isEditing ? _showImageSourceSheet : null,
+      onTap: _isReservedOrDone ? null : () => _showImageSourceSheet(state),
       child: Container(
         height: 220,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          border: Border.all(color: borderColor),
+          color: colorScheme.surface,
+          border: Border.all(
+            color: state.hasError ? AppColors.danger : borderColor,
+            style: BorderStyle.solid,
+          ),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: hasNewImage
-                  ? Image.file(_newImageFile!, fit: BoxFit.cover)
-                  : (existingUrl.isNotEmpty
-                        ? Image.network(
+        child: (hasNewImage || existingUrl.isNotEmpty)
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: hasNewImage
+                        ? Image.file(_newImageFile!, fit: BoxFit.cover)
+                        : Image.network(
                             existingUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Center(
+                            errorBuilder: (_, __, ___) => Center(
                               child: Icon(
                                 Icons.broken_image_outlined,
                                 size: 48,
                                 color: AppColors.neutral400,
                               ),
                             ),
-                          )
-                        : const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 48,
-                              color: AppColors.neutral400,
-                            ),
-                          )),
-            ),
-            // Edit overlay hint
-            if (_isEditing)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.camera_alt_outlined,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Change Photo',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          ),
+                  ),
+                  if (!_isReservedOrDone)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _newImageFile = null;
+                          });
+                          state.didChange(null);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, size: 32, color: AppColors.neutral400),
+                  SizedBox(height: 8),
+                  Text(
+                    'Add Image',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.neutral400,
+                    ),
                   ),
-                ),
+                ],
               ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildDietaryTagsSection(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildDietaryTagsRow(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    FormFieldState<List<String>> state,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             _buildLabel(theme, 'Dietary Tags', required: true),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             if (_selectedTags.isNotEmpty)
               Expanded(
                 child: Text(
@@ -603,15 +683,19 @@ class _ItemDetailsState extends State<ItemDetails> {
               ),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: _kDietaryTags.map((tag) {
             final selected = _selectedTags.contains(tag);
-            return GestureDetector(
-              onTap: _isEditing
-                  ? () {
+            return ToggleButton(
+              text: tag,
+              isSelected: selected,
+              activeColor: DietaryTagColors.colorFor(tag),
+              onPressed: _isReservedOrDone
+                  ? () {}
+                  : () {
                       setState(() {
                         if (selected) {
                           _selectedTags.remove(tag);
@@ -619,81 +703,11 @@ class _ItemDetailsState extends State<ItemDetails> {
                           _selectedTags.add(tag);
                         }
                       });
-                    }
-                  : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.primary500 : colorScheme.surface,
-                  border: Border.all(
-                    color: selected
-                        ? AppColors.primary500
-                        : AppColors.neutral300,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  tag,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: selected ? Colors.white : colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+                      state.didChange(_selectedTags);
+                    },
             );
           }).toList(),
         ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons(ThemeData theme) {
-    // Reserved/completed posts can only be deleted, not edited
-    if (_isReservedOrDone) {
-      return _buildDeleteButton();
-    }
-
-    if (_isEditing) {
-      return Column(
-        children: [
-          PrimaryButton(
-            text: 'Save Changes',
-            isLoading: _isSaving,
-            onPressed: _isSaving ? null : _save,
-          ),
-          const SizedBox(height: 12),
-          _buildDeleteButton(),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: _cancelEdit,
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: AppColors.neutral500,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // View mode
-    return Column(
-      children: [
-        PrimaryButton(
-          text: 'Edit Item',
-          onPressed: () => setState(() => _isEditing = true),
-        ),
-        const SizedBox(height: 12),
-        _buildDeleteButton(),
       ],
     );
   }
@@ -703,16 +717,16 @@ class _ItemDetailsState extends State<ItemDetails> {
       width: double.infinity,
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.danger),
+          side: BorderSide(color: AppColors.danger),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: EdgeInsets.symmetric(vertical: 14),
           foregroundColor: AppColors.danger,
         ),
         onPressed: _isDeleting ? null : _confirmDelete,
         child: _isDeleting
-            ? const SizedBox(
+            ? SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
@@ -720,7 +734,7 @@ class _ItemDetailsState extends State<ItemDetails> {
                   strokeWidth: 2,
                 ),
               )
-            : const Text(
+            : Text(
                 'Delete',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
