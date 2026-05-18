@@ -205,6 +205,45 @@ class RequestDetailsScreen extends StatelessWidget {
       const Duration(hours: 1),
     );
     final canCancel = now.isBefore(oneHourBeforePickup);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (request.status == RequestStatus.accepted && !canCancel) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.warning500.withValues(alpha: 0.15)
+              : AppColors.warning50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark 
+                ? AppColors.warning500.withValues(alpha: 0.3) 
+                : AppColors.warning500.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: isDark ? AppColors.warning500 : AppColors.warning900,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Item can't be cancelled",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.warning : AppColors.warning900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return SecondaryButton(
       text: request.status == RequestStatus.accepted

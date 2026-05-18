@@ -113,6 +113,35 @@ class ExchangesRequest extends StatelessWidget {
           ],
         ),
       );
+    } else if (request.status == RequestStatus.rejected) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.error500.withValues(alpha: 0.15)
+              : AppColors.error50,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.cancel, color: AppColors.statusExpired, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "Not accepted this time. Try another listing.",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: AppColors.statusExpired,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
     return SizedBox();
   }

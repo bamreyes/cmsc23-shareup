@@ -41,6 +41,7 @@ class InboundRequestCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
 
           Row(
@@ -125,27 +126,81 @@ class InboundRequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          Row(
-            children: [
-              Expanded(
-                child: SecondaryButton(
-                  text: "Reject",
-                  height: 44, 
-                  onPressed: () => _onRejectPressed(context),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: PrimaryButton(
-                  text: "Accept",
-                  height: 44,
-                  onPressed: () => _onAcceptPressed(context),
-                ),
-              ),
-            ],
-          )
+          _buildActionRow(context, isDark),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionRow(BuildContext context, bool isDark) {
+    if (request.status == RequestStatus.accepted) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF143A00) : AppColors.primary50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? const Color(0xFF235A00) : AppColors.primary200,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle_rounded, color: AppColors.primary500, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              "You accepted this request",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.primary900,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (request.status == RequestStatus.rejected || request.status == RequestStatus.cancelled) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.neutral800 : AppColors.neutral100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Text(
+            request.status == RequestStatus.cancelled ? "Request cancelled" : "Request unavailable",
+            style: const TextStyle(
+              color: AppColors.neutral400, 
+              fontSize: 13, 
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: SecondaryButton(
+            text: "Reject",
+            height: 44, 
+            onPressed: () => _onRejectPressed(context),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: PrimaryButton(
+            text: "Accept",
+            height: 44,
+            onPressed: () => _onAcceptPressed(context),
+          ),
+        ),
+      ],
     );
   }
 
@@ -154,7 +209,9 @@ class InboundRequestCard extends StatelessWidget {
     final result = await provider.acceptRequest(request.id ?? '', postId, request.requesterId);
 
     if (!result.isSuccess && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error ?? 'Failed to accept request.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error ?? 'Failed to accept request.')),
+      );
     }
   }
 
@@ -163,7 +220,9 @@ class InboundRequestCard extends StatelessWidget {
     final result = await provider.rejectRequest(request.id ?? '', postId);
 
     if (!result.isSuccess && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error ?? 'Failed to reject request.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error ?? 'Failed to reject request.')),
+      );
     }
   }
 }
