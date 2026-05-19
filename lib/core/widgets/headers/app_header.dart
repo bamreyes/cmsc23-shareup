@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:project/features/notifications/providers/notification_provider.dart';
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
@@ -35,6 +38,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: false,
       titleSpacing: 0,
+      shape: backgroundColor == Colors.transparent ? Border() : null,
     );
   }
 
@@ -121,6 +125,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   factory AppHeader.back({
     required String title,
     VoidCallback? onBack,
+    List<Widget>? actions,
     PreferredSizeWidget? bottom,
     Color? backgroundColor,
     Color? textColor,
@@ -137,6 +142,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
           color: textColor,
         ),
       ),
+      actions: actions,
       bottom: bottom,
     );
   }
@@ -219,6 +225,52 @@ class _CircleIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    Widget iconWidget = Icon(
+      icon,
+      color: Theme.of(context).colorScheme.onSurface,
+      size: 24,
+    );
+
+    if (icon == Icons.notifications_none_outlined && uid != null) {
+      iconWidget = StreamBuilder<int>(
+        stream: context.read<NotificationProvider>().streamUnreadCount(uid),
+        builder: (context, snapshot) {
+          final count = snapshot.data ?? 0;
+          if (count == 0) {
+            return Icon(
+              icon,
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 24,
+            );
+          }
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(
+                icon,
+                color: Theme.of(context).colorScheme.onSurface,
+                size: 24,
+              ),
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: AppColors.error500,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.all(8.0),
       child: Container(
@@ -230,12 +282,9 @@ class _CircleIconButton extends StatelessWidget {
         ),
         child: IconButton(
           padding: EdgeInsets.zero,
-          icon: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.onSurface,
-            size: 24,
-          ),
-          onPressed: onPressed ??
+          icon: iconWidget,
+          onPressed:
+              onPressed ??
               () {
                 if (icon == Icons.notifications_none_outlined) {
                   context.push('/notifications');

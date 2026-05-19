@@ -24,7 +24,11 @@ class AuthService {
       }
       return Result.error(message);
     } catch (e) {
-      return Result.error(e.toString());
+      final errorStr = e.toString();
+      if (errorStr.contains('pigeon') || errorStr.contains('FirebaseAuthHostApi') || errorStr.contains('channel-error')) {
+        return Result.error('Unable to connect to the authentication server. Please check your internet connection.');
+      }
+      return Result.error(errorStr);
     }
   }
 

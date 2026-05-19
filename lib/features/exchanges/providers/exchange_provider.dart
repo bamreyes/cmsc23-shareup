@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project/core/models/post_model.dart';
@@ -8,12 +9,11 @@ import 'package:project/core/services/database_service.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/services/media_service.dart';
 import 'package:project/core/utils/result.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:project/core/models/notification_model.dart';
+import 'package:project/core/services/push_notification_service.dart';
 
 class ExchangeProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
   final LocationService _locationService = LocationService();
   final MediaService _mediaService = MediaService();
 
@@ -28,6 +28,11 @@ class ExchangeProvider extends ChangeNotifier {
   final Map<String, UserModel> _cachedRequesters = {};
 
   bool _isLoading = false;
+
+  StreamSubscription<List<PostModel>>? _postsSubscription;
+  StreamSubscription<List<RequestModel>>? _requestsSubscription;
+  final Map<String, StreamSubscription<List<RequestModel>>>
+  _inboundSubscriptions = {};
 
   List<PostModel> get posts => _posts;
   List<RequestModel> get requests => _requests;
@@ -74,38 +79,84 @@ class ExchangeProvider extends ChangeNotifier {
   }
 
   Future<void> fetchMyPosts(String userId) async {
+    await _postsSubscription?.cancel();
     _isLoading = true;
     notifyListeners();
 
-    final result = await _databaseService.getMyPosts(userId);
-    if (result.isSuccess) {
-      _posts = result.data ?? [];
-    }
+    _postsSubscription = _databaseService
+        .getMyPostsStream(userId)
+        .listen(
+          (fetchedPosts) async {
+            _posts = fetchedPosts;
 
-    _isLoading = false;
+            for (var post in _posts) {
+              if (post.status == PostStatus.reserved ||
+                  post.status == PostStatus.completed) {
+                _fetchReceiverForPostRealTime(post);
+              }
+            }
+
+            _isLoading = false;
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint("Error in posts stream: $error");
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
+  }
+
+  Future<void> _fetchReceiverForPostRealTime(PostModel post) async {
+    if (post.id == null) return;
+    final requestResult = await _databaseService.getRequestByPostId(post.id!);
+    if (requestResult.isSuccess && requestResult.data != null) {
+      final request = requestResult.data!;
+      _postRequests[post.id!] = request;
+
+      final userResult = await _databaseService.getUserById(
+        request.requesterId,
+      );
+      if (userResult.isSuccess && userResult.data != null) {
+        _postReceivers[post.id!] = userResult.data!;
+      }
+    } else if (post.receiverId != null) {
+      final userResult = await _databaseService.getUserById(post.receiverId!);
+      if (userResult.isSuccess && userResult.data != null) {
+        _postReceivers[post.id!] = userResult.data!;
+      }
+    }
     notifyListeners();
   }
 
   Future<void> fetchMyRequests(String userId) async {
+    await _requestsSubscription?.cancel();
     _isLoading = true;
     notifyListeners();
 
-    final result = await _databaseService.getMyRequests(userId);
-    if (result.isSuccess) {
-      _requests = result.data ?? [];
+    _requestsSubscription = _databaseService
+        .getMyRequestsStream(userId)
+        .listen(
+          (fetchedRequests) async {
+            _requests = fetchedRequests;
 
-      for (var req in _requests) {
-        final detailsResult = await _databaseService.getRequestDetailsByPostId(
-          req.postId,
+            for (var req in _requests) {
+              final detailsResult = await _databaseService
+                  .getRequestDetailsByPostId(req.postId);
+              if (detailsResult.isSuccess && detailsResult.data != null) {
+                _requestDetails[req.postId] = detailsResult.data!;
+              }
+            }
+
+            _isLoading = false;
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint("Error in requests stream: $error");
+            _isLoading = false;
+            notifyListeners();
+          },
         );
-        if (detailsResult.isSuccess && detailsResult.data != null) {
-          _requestDetails[req.postId] = detailsResult.data!;
-        }
-      }
-    }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> fetchReceiverForPost(PostModel post) async {
@@ -143,12 +194,60 @@ class ExchangeProvider extends ChangeNotifier {
   Future<Result<bool>> createPost(PostModel post) async {
     final result = await _databaseService.createPost(post);
 
-    if (result.isSuccess) {
-      _posts.insert(0, post);
+    if (result.isSuccess && result.data != null) {
+      final postId = result.data!;
+      final newPost = post.copyWith(id: postId);
+      _posts.insert(0, newPost);
       notifyListeners();
+
+      _notifyUsersOfNewPost(newPost);
+      return Result.success(true);
     }
 
-    return result;
+    return Result.error(result.error ?? 'Failed to create post');
+  }
+
+  Future<void> _notifyUsersOfNewPost(PostModel post) async {
+    try {
+      final usersResult = await _databaseService.getAllUsers();
+      if (usersResult.isError || usersResult.data == null) return;
+
+      final users = usersResult.data!;
+      for (var user in users) {
+        if (user.uid == post.userId) continue;
+        if (!user.notificationPreferences.newPost) continue;
+
+        final distanceResult = _locationService.getDistance(
+          startLatitude: post.latitude,
+          startLongitude: post.longitude,
+          endLatitude: user.latitude,
+          endLongitude: user.longitude,
+        );
+        if (distanceResult.isError || distanceResult.data == null) continue;
+        final distanceInKm = distanceResult.data!;
+        if (distanceInKm > user.discoveryRadius) continue;
+
+        bool isTagMatch = true;
+        if (user.dietaryTags.isNotEmpty) {
+          isTagMatch = post.dietaryTags.any(
+            (tag) => user.dietaryTags.contains(tag),
+          );
+        }
+
+        if (!isTagMatch) continue;
+
+        if (user.uid != null && post.id != null) {
+          await _databaseService.createNotification(
+            userId: user.uid!,
+            type: NotificationType.newPost.name,
+            message: 'A new listing matching your preferences is available nearby: ${post.name}!',
+            postId: post.id!,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to send new post notifications: $e');
+    }
   }
 
   Future<Result<bool>> deletePost(String postId) async {
@@ -166,27 +265,25 @@ class ExchangeProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<dynamic> createRequest(RequestModel request, {required String sellerId, required String itemNavigatorName, required String requesterName}) async {
+  Future<dynamic> createRequest(
+    RequestModel request, {
+    required String sellerId,
+    required String itemNavigatorName,
+    required String requesterName,
+  }) async {
     final result = await _databaseService.createRequest(request);
 
     if (result.isSuccess && result.data != null) {
       final createdRequest = result.data!;
       _requests.insert(0, createdRequest);
-      try {
-        await _db
-            .collection('users')
-            .doc(sellerId) 
-            .collection('notifications')
-            .add({
-          'type': NotificationType.requestReceived.name,
-          'message': '$requesterName has requested your $itemNavigatorName. Tap to view the request.',
-          'postId': createdRequest.postId,
-          'requestId': createdRequest.id,
-          'isRead': false,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      } catch (e) {
-        debugPrint('Failed to send request notification payload: $e');
+      if (createdRequest.id != null) {
+        await _databaseService.createNotification(
+          userId: sellerId,
+          type: NotificationType.requestReceived.name,
+          message: '$requesterName has requested your $itemNavigatorName. Tap to view the request.',
+          postId: createdRequest.postId,
+          requestId: createdRequest.id!,
+        );
       }
       notifyListeners();
     }
@@ -214,6 +311,10 @@ class ExchangeProvider extends ChangeNotifier {
           createdAt: oldReq.createdAt,
         );
       }
+
+      // Cancel scheduled reminders for both Owner and Requester
+      PushNotificationService().cancelPickupReminder(requestId, true);
+      PushNotificationService().cancelPickupReminder(requestId, false);
     }
 
     _isLoading = false;
@@ -222,28 +323,47 @@ class ExchangeProvider extends ChangeNotifier {
   }
 
   Future<void> fetchInboundRequestforPost(String postId) async {
+    await _inboundSubscriptions[postId]?.cancel();
     _isLoading = true;
-    _inboundRequests.remove(postId);
     notifyListeners();
 
-    final result = await _databaseService.getRequestsForPost(postId);
-    if (result.isSuccess) {
-      _inboundRequests[postId] = result.data ?? [];
+    _inboundSubscriptions[postId] = _databaseService
+        .getInboundRequestsStream(postId)
+        .listen(
+          (fetched) async {
+            _inboundRequests[postId] = fetched;
 
-      for (var req in _inboundRequests[postId]!) {
-        if (!_cachedRequesters.containsKey(req.requesterId)) {
-          final userResult = await _databaseService.getUserById(
-            req.requesterId,
-          );
-          if (userResult.isSuccess && userResult.data != null) {
-            _cachedRequesters[req.requesterId] = userResult.data!;
-          }
-        }
-      }
+            // Cache requester profile details
+            for (var req in fetched) {
+              if (!_cachedRequesters.containsKey(req.requesterId)) {
+                final userResult = await _databaseService.getUserById(
+                  req.requesterId,
+                );
+                if (userResult.isSuccess && userResult.data != null) {
+                  _cachedRequesters[req.requesterId] = userResult.data!;
+                }
+              }
+            }
+
+            _isLoading = false;
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint("Error in inbound requests stream: $error");
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
+  }
+
+  @override
+  void dispose() {
+    _postsSubscription?.cancel();
+    _requestsSubscription?.cancel();
+    for (var sub in _inboundSubscriptions.values) {
+      sub.cancel();
     }
-
-    _isLoading = false;
-    notifyListeners();
+    super.dispose();
   }
 
   Future<Result<bool>> acceptRequest(
@@ -295,6 +415,15 @@ class ExchangeProvider extends ChangeNotifier {
               createdAt: req.createdAt,
             );
             _postRequests[postId] = acceptedReq;
+
+            // Schedule pickup reminder for the Owner (1 hour before pickup)
+            PushNotificationService().schedulePickupReminder(
+              requestId: requestId,
+              itemName: itemName,
+              pickupDatetime: req.pickupDatetime,
+              isOwner: true,
+            );
+
             return acceptedReq;
           } else if (req.status == RequestStatus.pending) {
             return RequestModel(
@@ -315,22 +444,13 @@ class ExchangeProvider extends ChangeNotifier {
         _postReceivers[postId] = _cachedRequesters[requesterId]!;
       }
 
-      try {
-        await _db
-            .collection('users')
-            .doc(requesterId)
-            .collection('notifications')
-            .add({
-          'type': NotificationType.requestAccepted.name,
-          'message': 'Your request for $itemName has been approved! View details here.',
-          'postId': postId,
-          'requestId': requestId,
-          'isRead': false,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      } catch (e) {
-        debugPrint('Failed to send approval notification payload: $e');
-      }
+      await _databaseService.createNotification(
+        userId: requesterId,
+        type: NotificationType.requestAccepted.name,
+        message: 'Your request for $itemName has been approved! View details here.',
+        postId: postId,
+        requestId: requestId,
+      );
     }
 
     _isLoading = false;
@@ -342,7 +462,9 @@ class ExchangeProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final targetRequest = _inboundRequests[postId]?.firstWhere((req) => req.id == requestId);
+    final targetRequest = _inboundRequests[postId]?.firstWhere(
+      (req) => req.id == requestId,
+    );
     final postIndex = _posts.indexWhere((p) => p.id == postId);
     final itemName = postIndex != -1 ? _posts[postIndex].name : 'an item';
 
@@ -350,24 +472,15 @@ class ExchangeProvider extends ChangeNotifier {
 
     if (result.isSuccess) {
       if (targetRequest != null) {
-        try {
-          await _db
-              .collection('users')
-              .doc(targetRequest.requesterId)
-              .collection('notifications')
-              .add({
-            'type': NotificationType.requestRejected.name,
-            'message': 'Your request for $itemName was unfortunately declined.',
-            'postId': postId,
-            'requestId': requestId,
-            'isRead': false,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        } catch (e) {
-          debugPrint('Failed to send rejection notification payload: $e');
-        }
+        await _databaseService.createNotification(
+          userId: targetRequest.requesterId,
+          type: NotificationType.requestRejected.name,
+          message: 'Your request for $itemName was unfortunately declined.',
+          postId: postId,
+          requestId: requestId,
+        );
       }
-      
+
       _inboundRequests[postId]?.removeWhere((req) => req.id == requestId);
     }
 
@@ -407,6 +520,12 @@ class ExchangeProvider extends ChangeNotifier {
           updatedAt: DateTime.now(),
         );
       }
+      final acceptedReq = _postRequests[postId];
+      if (acceptedReq != null && acceptedReq.id != null) {
+        PushNotificationService().cancelPickupReminder(acceptedReq.id!, true);
+        PushNotificationService().cancelPickupReminder(acceptedReq.id!, false);
+      }
+
       notifyListeners();
     }
 

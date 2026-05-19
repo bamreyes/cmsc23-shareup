@@ -5,13 +5,15 @@ import 'package:project/core/models/notification_preferences.dart';
 import 'package:project/core/services/location_service.dart';
 import 'package:project/core/services/user_service.dart';
 import 'package:project/core/utils/result.dart';
-
 import 'package:project/core/services/database_service.dart';
+import 'package:project/core/services/push_notification_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final UserService _userService = UserService();
   final LocationService _locationService = LocationService();
   final DatabaseService _databaseService = DatabaseService();
+  final PushNotificationService _pushNotificationService =
+      PushNotificationService();
 
   ProfileProvider() {
     FirebaseAuth.instance.authStateChanges().listen((user) {
@@ -37,6 +39,7 @@ class ProfileProvider extends ChangeNotifier {
     if (result.isSuccess) {
       _currentUser = result.data;
       notifyListeners();
+      _pushNotificationService.initialize(uid);
       return Result.success(_currentUser);
     }
     return Result.error(result.error ?? "Failed to load user");

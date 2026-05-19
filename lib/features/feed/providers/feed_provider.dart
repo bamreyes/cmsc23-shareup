@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:project/core/models/post_model.dart';
 import 'package:project/core/models/user_model.dart';
@@ -10,6 +11,8 @@ class FeedProvider extends ChangeNotifier {
   final Map<String, UserModel> _users = {};
   bool _isLoading = false;
   String? _error;
+  
+  StreamSubscription<List<PostModel>>? _postsSubscription;
 
   List<PostModel> get posts => _posts;
   UserModel? getUser(String userId) => _users[userId];
@@ -17,20 +20,21 @@ class FeedProvider extends ChangeNotifier {
   String? get error => _error;
 
   Future<void> fetchAllPosts() async {
+    await _postsSubscription?.cancel();
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    final result = await _databaseService.getAllPosts();
-
-    if (result.isSuccess) {
-      _posts = result.data ?? [];
-    } else {
-      _error = result.error;
-    }
-
-    _isLoading = false;
-    notifyListeners();
+    _postsSubscription = _databaseService.getAllPostsStream().listen((fetchedPosts) {
+      _posts = fetchedPosts;
+      _isLoading = false;
+      notifyListeners();
+    }, onError: (error) {
+      debugPrint("Error in feed posts stream: $error");
+      _error = error.toString();
+      _isLoading = false;
+      notifyListeners();
+    });
   }
 
   Future<void> fetchUser(String userId) async {
@@ -41,6 +45,12 @@ class FeedProvider extends ChangeNotifier {
       _users[userId] = result.data!;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _postsSubscription?.cancel();
+    super.dispose();
   }
 }
 

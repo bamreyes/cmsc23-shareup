@@ -63,7 +63,19 @@ class _ScanScreenState extends State<ScanScreen> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      _showSuccessDialog(result.data ?? 'Exchange completed!');
+      if (mounted) {
+        context.read<ExchangeProvider>().fetchMyPosts(scannerId);
+        
+        context.pop();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.data ?? 'Exchange completed successfully!'),
+            backgroundColor: AppColors.primary500,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } else {
       _showError(result.error ?? 'Something went wrong.');
       setState(() {
@@ -81,77 +93,6 @@ class _ScanScreenState extends State<ScanScreen> {
         content: Text(message),
         backgroundColor: AppColors.danger,
         behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                color: AppColors.primary50,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle_rounded,
-                color: AppColors.primary500,
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Exchange Complete!',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.neutral500,
-                  ),
-            ),
-          ],
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary500,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  Navigator.pop(context); // close dialog
-                  context.pop(); // go back to exchanges
-                },
-                child: const Text(
-                  'Done',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
