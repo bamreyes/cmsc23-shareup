@@ -7,10 +7,12 @@ import 'package:project/core/utils/result.dart';
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<Result<bool>> createPost(PostModel post) async {
+  Future<Result<String>> createPost(PostModel post) async {
     try {
-      await _firestore.collection('posts').add(post.toJson());
-      return Result.success(true);
+      final docRef = _firestore.collection('posts').doc();
+      final postWithId = post.copyWith(id: docRef.id);
+      await docRef.set(postWithId.toJson());
+      return Result.success(docRef.id);
     } catch (e) {
       return Result.error(e.toString());
     }
@@ -216,7 +218,10 @@ class DatabaseService {
 
   Future<Result<List<PostModel>>> getAllPosts() async {
     try {
-      final snapshot = await _firestore.collection('posts').get();
+      final snapshot = await _firestore
+          .collection('posts')
+          .where('status', isEqualTo: PostStatus.available.name)
+          .get();
       final posts = snapshot.docs
           .map((doc) => PostModel.fromJson(doc.data(), doc.id))
           .toList();
@@ -253,6 +258,59 @@ class DatabaseService {
               .map((doc) => PostModel.fromJson(doc.data(), doc.id))
               .toList();
         });
+  }
+
+  Stream<List<PostModel>> getMyPostsStream(String userId) {
+    return _firestore
+        .collection('posts')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => PostModel.fromJson(doc.data(), doc.id))
+          .toList();
+    });
+  }
+
+  Stream<List<RequestModel>> getMyRequestsStream(String userId) {
+    return _firestore
+        .collection('requests')
+        .where('requesterId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
+          .toList();
+    });
+  }
+
+  Stream<List<RequestModel>> getInboundRequestsStream(String postId) {
+    return _firestore
+        .collection('requests')
+        .where('postId', isEqualTo: postId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => RequestModel.fromJson(doc.data(), doc.id))
+          .toList();
+    });
+  }
+
+  Stream<List<PostModel>> getAllPostsStream() {
+    return _firestore
+        .collection('posts')
+        .where('status', isEqualTo: PostStatus.available.name)
+        .snapshots()
+        .map((snapshot) {
+      final posts = snapshot.docs
+          .map((doc) => PostModel.fromJson(doc.data(), doc.id))
+          .toList();
+      posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
+    });
   }
 
   Future<Result<UserModel>> getUserById(String userId) async {
@@ -536,5 +594,47 @@ class DatabaseService {
       }
     }
     return req;
+  }
+
+  Future<Result<List<UserModel>>> getAllUsers() async {
+    try {
+      final snapshot = await _firestore.collection('users').get();
+      final users = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['uid'] = doc.id;
+        return UserModel.fromMap(data);
+      }).toList();
+      return Result.success(users);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  Future<Result<bool>> createNotification({
+    required String userId,
+    required String type,
+    required String message,
+    required String postId,
+    String? requestId,
+  }) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .add({
+        'type': type,
+        'message': message,
+        'postId': postId,
+        if (requestId != null) 'requestId': requestId,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return Result.success(true);
+    } on FirebaseException catch (e) {
+      return Result.error(e.message ?? "An error occurred writing notification");
+    } catch (e) {
+      return Result.error(e.toString());
+    }
   }
 }

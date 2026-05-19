@@ -15,8 +15,33 @@ class NotificationProvider extends ChangeNotifier {
         .collection('notifications')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-          .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
-          .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  Stream<int> streamUnreadCount(String uid) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  Future<void> markAsRead(String uid, String notificationId) async {
+    try {
+      await _db
+          .collection('users')
+          .doc(uid)
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'isRead': true});
+    } catch (e) {
+      debugPrint('Failed to mark notification as read: $e');
+    }
   }
 }

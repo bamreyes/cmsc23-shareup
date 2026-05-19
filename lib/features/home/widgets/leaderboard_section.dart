@@ -25,7 +25,6 @@ class LeaderboardSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final showPodium = home.leaderboard.length >= 3;
     final isEmpty = home.leaderboard.isEmpty;
     final shouldExpand = home.leaderboard.length > 3 || isEmpty;
 

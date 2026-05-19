@@ -43,6 +43,42 @@ class PostModel {
     required this.updatedAt,
   });
 
+  PostModel copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    String? description,
+    String? image,
+    DateTime? expirationDate,
+    List<String>? dietaryTags,
+    double? latitude,
+    double? longitude,
+    String? locationName,
+    PostStatus? status,
+    String? receiverId,
+    String? qrCode,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return PostModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      image: image ?? this.image,
+      expirationDate: expirationDate ?? this.expirationDate,
+      dietaryTags: dietaryTags ?? this.dietaryTags,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      locationName: locationName ?? this.locationName,
+      status: status ?? this.status,
+      receiverId: receiverId ?? this.receiverId,
+      qrCode: qrCode ?? this.qrCode,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,

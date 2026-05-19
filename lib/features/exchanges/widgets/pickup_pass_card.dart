@@ -8,6 +8,7 @@ import 'package:project/features/exchanges/providers/exchange_provider.dart';
 import 'package:project/core/utils/date_formatter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:project/core/widgets/common/loading_screen.dart';
+import 'package:project/core/widgets/buttons/secondary_button.dart';
 
 class PickupPassCard extends StatefulWidget {
   final PostModel post;
@@ -223,29 +224,9 @@ class _PickupPassCardState extends State<PickupPassCard> {
                   const SizedBox(height: 16),
                 ],
                 if (widget.post.status != PostStatus.completed)
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: canCancel ? () => _handleCancel(context) : null,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: canCancel ? AppColors.primary500 : Colors.grey,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text(
-                        "Cancel Pickup",
-                        style: TextStyle(
-                          color: canCancel ? AppColors.primary500 : Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
+                  SecondaryButton(
+                    text: "Cancel Pickup",
+                    onPressed: canCancel ? () => _handleCancel(context) : null,
                   ),
               ],
             ),
@@ -258,13 +239,16 @@ class _PickupPassCardState extends State<PickupPassCard> {
   void _handleCancel(BuildContext context) async {
     setState(() => _isCancelling = true);
     final exchangeProvider = context.read<ExchangeProvider>();
-    await exchangeProvider.cancelRequest(
+    final result = await exchangeProvider.cancelRequest(
       widget.request.id!,
       widget.post.id!,
     );
 
     if (mounted) {
       setState(() => _isCancelling = false);
+      if (result.isSuccess) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
